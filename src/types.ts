@@ -57,5 +57,23 @@ export interface DevoteeProfile {
   potType: PotId;
   registeredAt?: string;
   customPotName?: string;
+  isPaid?: boolean;
+  paidAmount?: number;
+  paymentTxnId?: string;
+  paymentMethod?: string;
+  paidAt?: string;
 }
+
+export const DAKSHINA_PAYMENT_LINKS = {
+  venna: 'https://page.smepay.in/@crackthepot/transaction/zrx5na4', // ₹5
+  uyyala: 'https://page.smepay.in/@crackthepot/transaction/qheeu6a', // ₹9
+} as const;
+
+export interface DakshinaConfig {
+  merchantUpi: string;
+  merchantName: string;
+  vaultAlias: string;
+  encryptedSealId: string;
+}
+
 

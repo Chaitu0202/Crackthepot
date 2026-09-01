@@ -311,7 +311,7 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
                 : 'bg-gradient-to-r from-[#E8B923] to-[#B8860B] text-[#0B1230] hover:brightness-105 active:scale-[0.98]'
             }`}
           >
-            <span>Crack {pot.name}</span>
+            <span>Offer ₹{pot.price} & Crack {pot.name}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

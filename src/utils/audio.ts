@@ -176,6 +176,33 @@ export function playTempleBell(muted: boolean = false) {
   });
 }
 
+export function playCoinChime(muted: boolean = false) {
+  if (muted) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  // High metallic coin drops
+  const coins = [1864.66, 2093.0, 2489.02, 3135.96];
+  coins.forEach((freq, idx) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.7, now + idx * 0.06 + 0.18);
+
+    gain.gain.setValueAtTime(0.3, now + idx * 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.22);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now + idx * 0.06);
+    osc.stop(now + idx * 0.06 + 0.25);
+  });
+}
+
 export function playCelebrationFanfare(muted: boolean = false) {
   if (muted) return;
   const ctx = getAudioContext();

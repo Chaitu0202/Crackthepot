@@ -209,7 +209,9 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
             >
               <PeacockFeatherIcon className="w-5 h-6" />
               <span>
-                {isSubmitting ? 'Personalizing...' : 'Start Cracking (ప్రారంభించండి)'}
+                {isSubmitting
+                  ? 'Securing Reservation...'
+                  : `Proceed to Offer ₹${isUyyala ? 9 : 5} & Crack Pot`}
               </span>
             </button>
           </div>

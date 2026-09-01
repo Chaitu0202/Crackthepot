@@ -16,6 +16,7 @@ import { PotCrackersLiveTicker } from './components/PotCrackersLiveTicker';
 import { Footer } from './components/Footer';
 import { TermsModal } from './components/TermsModal';
 import { ClaimPotModal } from './components/ClaimPotModal';
+import { SacredDakshinaModal } from './components/SacredDakshinaModal';
 import { Sparkles, Trophy, Gift, ArrowDown } from 'lucide-react';
 import { RangoliDivider, DiyaLamp } from './components/SvgMotifs';
 
@@ -64,6 +65,7 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [isTermsOpen, setIsTermsOpen] = useState<boolean>(false);
   const [isClaimModalOpen, setIsClaimModalOpen] = useState<boolean>(false);
+  const [isDakshinaModalOpen, setIsDakshinaModalOpen] = useState<boolean>(false);
   
   // Devotee profile state with local persistence
   const [devoteeProfile, setDevoteeProfile] = useState<DevoteeProfile | null>(() => {
@@ -98,6 +100,13 @@ export default function App() {
     setIsClaimModalOpen(true);
   };
 
+  const handleOpenDakshinaModal = (potId?: PotId) => {
+    if (potId) {
+      setSelectedPotId(potId);
+    }
+    setIsDakshinaModalOpen(true);
+  };
+
   const handleProfileSubmitted = (profile: DevoteeProfile) => {
     setDevoteeProfile(profile);
     setSelectedPotId(profile.potType);
@@ -106,6 +115,44 @@ export default function App() {
     } catch {
       // ignore
     }
+    // Directly open the Sacred ₹5 / ₹9 Token Dakshina payment modal
+    setTimeout(() => {
+      setIsDakshinaModalOpen(true);
+    }, 150);
+  };
+
+  const handlePaymentSuccess = (amount: number, txnId: string, potType: PotId) => {
+    const updatedProfile: DevoteeProfile = {
+      ...(devoteeProfile || {
+        name: 'Devotee',
+        potType,
+        registeredAt: new Date().toISOString(),
+      }),
+      isPaid: true,
+      paidAmount: amount,
+      paymentTxnId: txnId,
+      paidAt: new Date().toISOString(),
+      potType,
+    };
+
+    setDevoteeProfile(updatedProfile);
+    try {
+      localStorage.setItem('krishna_pot_devotee', JSON.stringify(updatedProfile));
+    } catch {
+      // ignore
+    }
+
+    // Add instant bonus draw tickets for the sacred offering
+    const bonusTickets = potType === 'uyyala'
+      ? [
+          `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+          `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+          `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+        ]
+      : [`GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`];
+
+    setUserTickets((prev) => [...prev, ...bonusTickets]);
+
     // Smooth scroll to the interactive arena
     setTimeout(() => {
       scrollToSection('crack-interactive-arena');
@@ -116,6 +163,8 @@ export default function App() {
     setSelectedPotId(potId);
     if (!devoteeProfile) {
       setIsClaimModalOpen(true);
+    } else if (!devoteeProfile.isPaid || devoteeProfile.potType !== potId) {
+      setIsDakshinaModalOpen(true);
     } else {
       scrollToSection('crack-interactive-arena');
     }
@@ -201,6 +250,7 @@ export default function App() {
           onToggleSound={() => setSoundEnabled(!soundEnabled)}
           devoteeProfile={devoteeProfile}
           onRequestClaim={(potId) => handleOpenClaimModal(potId || selectedPotId)}
+          onRequestDakshina={(potId) => handleOpenDakshinaModal(potId || selectedPotId)}
         />
       </section>
 
@@ -216,6 +266,8 @@ export default function App() {
           setSelectedPotId(potId);
           if (!devoteeProfile) {
             handleOpenClaimModal(potId);
+          } else if (!devoteeProfile.isPaid || devoteeProfile.potType !== potId) {
+            handleOpenDakshinaModal(potId);
           } else {
             scrollToSection('crack-interactive-arena');
           }
@@ -240,6 +292,16 @@ export default function App() {
         onClose={() => setIsClaimModalOpen(false)}
         selectedPotId={selectedPotId}
         onSubmitProfile={handleProfileSubmitted}
+        soundEnabled={soundEnabled}
+      />
+
+      {/* SACRED DAKSHINA & MYSTERY QR PAYMENT MODAL (₹5 / ₹9) */}
+      <SacredDakshinaModal
+        isOpen={isDakshinaModalOpen}
+        onClose={() => setIsDakshinaModalOpen(false)}
+        potType={selectedPotId}
+        devoteeProfile={devoteeProfile}
+        onPaymentSuccess={handlePaymentSuccess}
         soundEnabled={soundEnabled}
       />
     </div>

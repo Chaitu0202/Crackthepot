@@ -14,21 +14,16 @@ interface CrackGameEngineProps {
   onToggleSound: () => void;
   devoteeProfile: DevoteeProfile | null;
   onRequestClaim: (potId?: PotConfig['id']) => void;
+  onRequestDakshina: (potId: PotConfig['id']) => void;
 }
 
-// Exact percentage calculation based on user requirements:
-// 1. First 3 taps = 10%
-// 2. 30 shares = 20%
-// 3. 100 shares = 50%
-// 4. 500 shares = 80%
-// 5. 1000 shares = 99%
-// 6. > 1000 shares = 100% (keep on sharing)
+// Progression states based on strikes and community shares (internal percentage policy masked)
 export function getPotProgressState(taps: number, shares: number) {
   if (taps === 0) {
     return {
       percent: 0,
-      milestoneTitle: '0% Start',
-      hint: 'Tap the sacred pot to begin (3 taps = 10%)',
+      milestoneTitle: 'Untouched Earthen Clay',
+      hint: 'Tap the sacred pot to deliver your initial strikes',
       isFortified: false,
       isShatterReady: false,
     };
@@ -36,9 +31,9 @@ export function getPotProgressState(taps: number, shares: number) {
 
   if (taps === 1) {
     return {
-      percent: 3,
-      milestoneTitle: '3% (Tap 1 of 3)',
-      hint: 'Hairline crack forming! 2 more taps for 10%',
+      percent: 8,
+      milestoneTitle: 'First Strike (1/3)',
+      hint: 'Hairline crack forming! Tap 2 more times to weaken the clay',
       isFortified: false,
       isShatterReady: false,
     };
@@ -46,9 +41,9 @@ export function getPotProgressState(taps: number, shares: number) {
 
   if (taps === 2) {
     return {
-      percent: 7,
-      milestoneTitle: '7% (Tap 2 of 3)',
-      hint: 'Surface fissures spreading! 1 more tap for 10%',
+      percent: 15,
+      milestoneTitle: 'Second Strike (2/3)',
+      hint: 'Surface fissures spreading! 1 more strike to test the terracotta seal',
       isFortified: false,
       isShatterReady: false,
     };
@@ -57,53 +52,53 @@ export function getPotProgressState(taps: number, shares: number) {
   // taps >= 3
   if (shares === 0) {
     return {
-      percent: 10,
-      milestoneTitle: '10% (3 Taps Reached)',
-      hint: 'Terracotta clay is fortified! Share on WhatsApp & Instagram to soften the clay',
+      percent: 22,
+      milestoneTitle: 'Clay Fortified (3 Taps)',
+      hint: 'The terracotta is fortified! Share on WhatsApp & Instagram with friends to soften the clay and build strike power',
       isFortified: true,
       isShatterReady: false,
     };
   }
 
   if (shares < 30) {
-    const p = Math.min(19, Math.round(10 + (shares / 30) * 10));
+    const p = Math.min(35, Math.round(22 + (shares / 30) * 15));
     return {
       percent: p,
-      milestoneTitle: `${p}% (${shares}/30 Shares)`,
-      hint: `Reach 30 shares on WhatsApp/Instagram for 20% power! (${30 - shares} shares left)`,
+      milestoneTitle: `Group Shares (${shares}/30)`,
+      hint: `Share with WhatsApp & Instagram friends to gather strike energy! (${30 - shares} shares to next tier)`,
       isFortified: true,
       isShatterReady: false,
     };
   }
 
   if (shares < 100) {
-    const p = Math.min(49, Math.round(20 + ((shares - 30) / 70) * 30));
+    const p = Math.min(55, Math.round(35 + ((shares - 30) / 70) * 20));
     return {
       percent: p,
-      milestoneTitle: `${p}% (${shares}/100 Shares)`,
-      hint: `Reach 100 shares for 50% power! Clay is visibly softening (${100 - shares} shares left)`,
+      milestoneTitle: `Squad Power (${shares}/100)`,
+      hint: `Clay is visibly softening under community strike energy! (${100 - shares} shares to deep fissure level)`,
       isFortified: true,
       isShatterReady: false,
     };
   }
 
   if (shares < 500) {
-    const p = Math.min(79, Math.round(50 + ((shares - 100) / 400) * 30));
+    const p = Math.min(78, Math.round(55 + ((shares - 100) / 400) * 23));
     return {
       percent: p,
-      milestoneTitle: `${p}% (${shares}/500 Shares)`,
-      hint: `Reach 500 shares for 80% power! Deep fissures opening (${500 - shares} shares left)`,
+      milestoneTitle: `Devotee Circle (${shares}/500)`,
+      hint: `Deep fractures spreading through the terracotta! (${500 - shares} shares to critical tension)`,
       isFortified: true,
       isShatterReady: false,
     };
   }
 
   if (shares < 1000) {
-    const p = Math.min(99, Math.round(80 + ((shares - 500) / 500) * 19));
+    const p = Math.min(95, Math.round(78 + ((shares - 500) / 500) * 17));
     return {
       percent: p,
-      milestoneTitle: `${p}% (${shares}/1000 Shares)`,
-      hint: `Reach 1,000 shares for 99% power! Almost ready to shatter (${1000 - shares} shares left)`,
+      milestoneTitle: `Mega Sankirtan (${shares}/1000)`,
+      hint: `Almost ready to shatter! (${1000 - shares} shares to complete unlock)`,
       isFortified: true,
       isShatterReady: false,
     };
@@ -112,8 +107,8 @@ export function getPotProgressState(taps: number, shares: number) {
   // shares >= 1000
   return {
     percent: 100,
-    milestoneTitle: `100% (${shares} Shares) — UNLOCKED!`,
-    hint: `✨ 100% Power unlocked! Tap the pot to shatter & claim your prize! Keep on sharing for extra lucky draw tickets!`,
+    milestoneTitle: `Complete Shatter Power (${shares} Shares)`,
+    hint: `✨ Maximum strike power unlocked! Tap the pot to shatter & claim your prize! Keep on sharing for bonus Grand Draw entries!`,
     isFortified: false,
     isShatterReady: true,
   };
@@ -128,6 +123,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
   onToggleSound,
   devoteeProfile,
   onRequestClaim,
+  onRequestDakshina,
 }) => {
   const [tapCount, setTapCount] = useState(0);
   const [sharesCount, setSharesCount] = useState(0);
@@ -247,6 +243,14 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
       return;
     }
 
+    // Check if token Dakshina is offered (₹5 for Venna, ₹9 for Uyyala)
+    if (!devoteeProfile.isPaid) {
+      const requiredAmt = isUyyala ? 9 : 5;
+      setTapFeedbackText(`🪔 Sacred ₹${requiredAmt} Token Dakshina required to activate & crack ${activePot.name}!`);
+      onRequestDakshina(activePot.id);
+      return;
+    }
+
     if (isCracked) return;
 
     // First 3 taps: user taps pot to reach 10%
@@ -258,22 +262,22 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
       setTimeout(() => setIsShaking(false), 300);
 
       if (nextTap === 1) {
-        setTapFeedbackText('✦ Tap 1/3 (3%): Hairline crack forming! Tap 2 more times for 10%');
+        setTapFeedbackText('✦ Strike 1/3: Hairline crack forming! Deliver 2 more strikes to test the seal.');
       } else if (nextTap === 2) {
-        setTapFeedbackText('✦ Tap 2/3 (7%): Surface fissures spreading! Tap 1 more time for 10%');
+        setTapFeedbackText('✦ Strike 2/3: Surface fissures spreading! Deliver 1 more strike to reach fortified stage.');
       } else if (nextTap === 3) {
-        setTapFeedbackText('🛡️ Tap 3/3 (10% Reached): Pot is heavily fortified! Share on WhatsApp & Instagram to soften the clay!');
+        setTapFeedbackText('🛡️ 3 Initial Strikes Delivered: Clay is fortified! Share on WhatsApp & Instagram with friends to soften the clay!');
         setShowShareModal(true);
       }
       return;
     }
 
-    // Taps >= 3: check if shares reached 1000 (100% power)
+    // Taps >= 3: check if shares reached 1000 (maximum shatter power)
     if (sharesCount < 1000) {
       setIsShaking(true);
       playPotTap(3, !soundEnabled);
       setTimeout(() => setIsShaking(false), 300);
-      setTapFeedbackText(`🛡️ Earthen pot is fortified at ${progressState.percent}%! Share on WhatsApp & Instagram to reach 100%!`);
+      setTapFeedbackText(`🛡️ Clay is fortified! Mobilize friends on WhatsApp & Instagram to reach maximum shatter power!`);
       setShowShareModal(true);
       return;
     }
@@ -404,19 +408,27 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
     >
       {/* Devotee Banner */}
       {devoteeProfile ? (
-        <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#1B7A6E]/30 via-[#0B1230] to-[#E8B923]/20 border border-[#E8B923]/50 flex items-center justify-between gap-3 shadow-md">
+        <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#1B7A6E]/30 via-[#0B1230] to-[#E8B923]/20 border border-[#E8B923]/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1B7A6E] to-[#E8B923] p-0.5 flex items-center justify-center text-[#0B1230] shadow">
               <NemaliIcon className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm sm:text-base font-bold text-[#F6EEDD]">
                   {devoteeProfile.name}&rsquo;s Sacred Matka
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1B7A6E]/40 text-emerald-300 border border-emerald-500/50 font-semibold">
-                  ✓ Claimed
-                </span>
+                {devoteeProfile.isPaid ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-semibold flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    <span>✓ ₹{devoteeProfile.paidAmount || (isUyyala ? 9 : 5)} Blessed & Active</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 font-semibold flex items-center gap-1">
+                    <Lock className="w-3 h-3" />
+                    <span>₹{isUyyala ? 9 : 5} Dakshina Pending</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs text-[#E8B923]">
                 {isUyyala ? 'Uyyala Kunda (₹9 &bull; 3x Draw Entries)' : 'Venna Kunda (₹5 &bull; 1x Draw Entry)'}
@@ -424,13 +436,24 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
             </div>
           </div>
 
-          <button
-            onClick={() => onRequestClaim(activePot.id)}
-            className="px-3 py-1.5 rounded-xl bg-[#14224A] border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center gap-1.5 hover:bg-[#1B7A6E]/30 transition-all cursor-pointer"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>Edit Name</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            {!devoteeProfile.isPaid && (
+              <button
+                onClick={() => onRequestDakshina(activePot.id)}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#E8B923] to-[#C6296F] text-[#0B1230] text-xs font-bold flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Offer ₹{isUyyala ? 9 : 5} & Unlock</span>
+              </button>
+            )}
+            <button
+              onClick={() => onRequestClaim(activePot.id)}
+              className="px-3 py-1.5 rounded-xl bg-[#14224A] border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center gap-1.5 hover:bg-[#1B7A6E]/30 transition-all cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Edit</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-[#C6296F]/20 via-[#0B1230] to-[#E8B923]/20 border border-[#E8B923]/40 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -471,7 +494,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
               </span>
             </h2>
             <p className="text-xs text-[#F6EEDD]/75">
-              3 Taps = 10% &bull; Share on WhatsApp & Instagram to reach 100% and shatter!
+              Deliver 3 initial strikes &bull; Share on WhatsApp & Instagram to mobilize devotees and shatter!
             </p>
           </div>
         </div>
@@ -520,7 +543,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-xs sm:text-sm font-bold text-[#E8B923] flex items-center gap-1.5">
               <Sparkles className="w-4 h-4" />
-              Clay Softening & Strike Power: {progressState.percent}%
+              Clay Softening & Strike Energy
             </span>
             <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
               progressState.isShatterReady
@@ -529,7 +552,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                 ? 'bg-[#E8B923]/20 text-[#E8B923] border border-[#E8B923]/40'
                 : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
             }`}>
-              {progressState.isShatterReady ? '💥 100% SHATTER READY' : progressState.milestoneTitle}
+              {progressState.isShatterReady ? '💥 SHATTER READY' : progressState.milestoneTitle}
             </span>
           </div>
 
@@ -546,19 +569,19 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                 ? 'bg-gradient-to-r from-emerald-500 via-[#E8B923] to-[#FFE27A] shadow-[0_0_15px_rgba(232,185,35,0.8)]'
                 : 'bg-gradient-to-r from-[#1B7A6E] via-[#C6296F] to-[#E8B923]'
             }`}
-            style={{ width: `${Math.max(progressState.percent, 3)}%` }}
+            style={{ width: `${Math.max(progressState.percent, 4)}%` }}
           />
         </div>
 
-        {/* Milestone Steps Bar (3 Taps: 10% | 30s: 20% | 100s: 50% | 500s: 80% | 1000s: 99% | 1000+: 100%) */}
+        {/* Qualitative Milestone Stages */}
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5 pt-1 text-[11px]">
           <div className={`p-1.5 rounded-lg border text-center ${
             tapCount >= 3 || sharesCount > 0
               ? 'bg-[#1B7A6E]/30 border-[#1B7A6E] text-emerald-300 font-bold'
               : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
           }`}>
-            <span className="block">3 Taps</span>
-            <strong className="text-xs">10%</strong>
+            <span className="block">3 Strikes</span>
+            <strong className="text-xs">Initial Test</strong>
           </div>
 
           <div className={`p-1.5 rounded-lg border text-center ${
@@ -567,7 +590,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
               : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
           }`}>
             <span className="block">30 Shares</span>
-            <strong className="text-xs">20%</strong>
+            <strong className="text-xs">Group Strike</strong>
           </div>
 
           <div className={`p-1.5 rounded-lg border text-center ${
@@ -576,7 +599,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
               : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
           }`}>
             <span className="block">100 Shares</span>
-            <strong className="text-xs">50%</strong>
+            <strong className="text-xs">Squad Power</strong>
           </div>
 
           <div className={`p-1.5 rounded-lg border text-center ${
@@ -585,7 +608,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
               : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
           }`}>
             <span className="block">500 Shares</span>
-            <strong className="text-xs">80%</strong>
+            <strong className="text-xs">Devotee Circle</strong>
           </div>
 
           <div className={`p-1.5 rounded-lg border text-center ${
@@ -594,16 +617,16 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
               : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
           }`}>
             <span className="block">1000 Shares</span>
-            <strong className="text-xs">99%</strong>
+            <strong className="text-xs">Near Critical</strong>
           </div>
 
           <div className={`p-1.5 rounded-lg border text-center ${
-            sharesCount > 1000 || isCracked
+            sharesCount >= 1000 || isCracked
               ? 'bg-gradient-to-r from-[#E8B923]/40 to-[#C6296F]/40 border-[#E8B923] text-[#FFE27A] font-extrabold shadow'
               : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
           }`}>
-            <span className="block">Keep Sharing</span>
-            <strong className="text-xs">100% 💥</strong>
+            <span className="block">Mega Blast</span>
+            <strong className="text-xs">Shatter 💥</strong>
           </div>
         </div>
 
@@ -1005,13 +1028,13 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
               Sacred Terracotta Fortified!
             </h3>
             <p className="text-xs sm:text-sm text-[#F6EEDD]/80 mt-1 leading-relaxed">
-              You reached 3 taps (10%). Now share on WhatsApp and Instagram to soften the sacred clay and unlock 100% shattering power!
+              You completed initial strikes. Now share on WhatsApp and Instagram to soften the sacred clay and unlock maximum shattering power!
             </p>
 
             {/* Current Power Progress */}
             <div className="my-4 p-4 rounded-2xl bg-[#080E24] border border-[#E8B923]/30">
               <div className="flex justify-between text-xs text-[#E8B923] font-bold mb-1.5">
-                <span>Power Progress: {progressState.percent}%</span>
+                <span>Clay State: {progressState.milestoneTitle}</span>
                 <span>{sharesCount} Shares Logged</span>
               </div>
               <div className="w-full h-3 bg-[#14224A] rounded-full overflow-hidden p-0.5">
@@ -1024,19 +1047,19 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
               {/* Milestones Reference */}
               <div className="grid grid-cols-5 gap-1 mt-3 text-[10px] text-[#F6EEDD]/70 text-center">
                 <div className={sharesCount >= 30 ? 'text-emerald-400 font-bold' : ''}>
-                  30s &rarr; 20%
+                  30s &bull; Group
                 </div>
                 <div className={sharesCount >= 100 ? 'text-emerald-400 font-bold' : ''}>
-                  100s &rarr; 50%
+                  100s &bull; Squad
                 </div>
                 <div className={sharesCount >= 500 ? 'text-emerald-400 font-bold' : ''}>
-                  500s &rarr; 80%
+                  500s &bull; Circle
                 </div>
                 <div className={sharesCount >= 1000 ? 'text-emerald-400 font-bold' : ''}>
-                  1000s &rarr; 99%
+                  1000s &bull; Mega
                 </div>
-                <div className={sharesCount > 1000 ? 'text-[#FFE27A] font-extrabold' : ''}>
-                  &gt;1000s &rarr; 100%
+                <div className={sharesCount >= 1000 ? 'text-[#FFE27A] font-extrabold' : ''}>
+                  Shatter 💥
                 </div>
               </div>
             </div>
@@ -1056,7 +1079,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                 className="w-full py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-[#0B1230] font-bold text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
               >
                 <WhatsAppIcon className="w-5 h-5 text-[#0B1230]" />
-                <span>Share to WhatsApp (+15 Shares & Weakens Clay)</span>
+                <span>Share to WhatsApp (+15 Shares & Softens Clay)</span>
               </button>
 
               {/* Instagram Direct */}
@@ -1076,21 +1099,21 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   className="py-2 px-3 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>+30 Shares (20%)</span>
+                  <span>+30 Shares (Group)</span>
                 </button>
                 <button
                   onClick={() => handleShareAction('boost100')}
                   className="py-2 px-3 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>+100 Shares (50%)</span>
+                  <span>+100 Shares (Squad)</span>
                 </button>
                 <button
                   onClick={() => handleShareAction('boost500')}
                   className="py-2 px-3 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>+500 Shares (80%)</span>
+                  <span>+500 Shares (Circle)</span>
                 </button>
                 <button
                   onClick={() => handleShareAction('boost1000')}

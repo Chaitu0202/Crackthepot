@@ -87,8 +87,8 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
           Social Boost &bull; <span className="text-[#E8B923]">Strength Meter</span>
         </h2>
         <p className="mt-2 text-sm sm:text-base text-[#F6EEDD]/80 max-w-xl mx-auto">
-          Share your pot link to soften the sacred clay (30s = 20%, 100s = 50%, 500s = 80%, 1000s = 99%). Every friend who joins gives you{' '}
-          <span className="text-[#E8B923] font-semibold">+20% Crack Strength</span> and{' '}
+          Share your pot link to soften the sacred clay and gather devotee strike power. Every friend who joins grants you{' '}
+          <span className="text-[#E8B923] font-semibold">+1 Devotee Strike Boost</span> and{' '}
           <span className="text-[#C6296F] font-semibold">+1 Free Grand Prize Draw Entry</span>!
         </p>
       </div>
@@ -105,7 +105,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
                 </h3>
               </div>
               <span className="px-3 py-1 rounded-full bg-[#E8B923]/20 border border-[#E8B923]/40 text-[#E8B923] font-bold text-sm">
-                {strength}% Full
+                Devotee Energy Meter
               </span>
             </div>
 
@@ -117,7 +117,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
               >
                 {strength >= 20 && (
                   <span className="text-[10px] text-[#0B1230] font-black uppercase tracking-tighter">
-                    🔥 POWER
+                    🔥 STRIKE ENERGY
                   </span>
                 )}
               </div>
@@ -125,9 +125,9 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
 
             {/* Milestones */}
             <div className="flex justify-between text-xs text-[#F6EEDD]/60 mt-1 px-1">
-              <span>10% (3 Taps)</span>
-              <span>50% (100 Shares)</span>
-              <span className="text-[#E8B923] font-semibold">100% (1000+ Shares)</span>
+              <span>Initial Strikes</span>
+              <span>Devotee Circle</span>
+              <span className="text-[#E8B923] font-semibold">Mega Shatter 💥</span>
             </div>
 
             {/* Friends who helped live feed */}
@@ -155,7 +155,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
                     </div>
                     <div className="flex items-center gap-1.5 text-[#E8B923] font-semibold">
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>+{friend.boostAdded}% Boost (+1 Entry)</span>
+                      <span>+{friend.boostAdded} Strike Boost (+1 Entry)</span>
                     </div>
                   </div>
                 ))}
