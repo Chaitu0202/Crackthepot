@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { PotConfig, PrizeResult, DevoteeProfile } from '../types';
 import { playPotTap, playPotShatter, playCelebrationFanfare } from '../utils/audio';
-import { Sparkles, Copy, Check, RotateCcw, Volume2, VolumeX, Gift, Trophy, Share2, Flame, Users, Lock, Unlock, Send, UserCheck, Edit3 } from 'lucide-react';
-import { PeacockFeatherIcon, FluteMotif, NemaliIcon } from './SvgMotifs';
+import { Sparkles, Copy, Check, RotateCcw, Volume2, VolumeX, Gift, Trophy, Flame, Lock, Unlock, UserCheck, Edit3, ChevronRight } from 'lucide-react';
+import { PeacockFeatherIcon, FluteMotif, NemaliIcon, WhatsAppIcon, InstagramIcon } from './SvgMotifs';
 
 interface CrackGameEngineProps {
   pots: PotConfig[];
@@ -16,8 +16,108 @@ interface CrackGameEngineProps {
   onRequestClaim: (potId?: PotConfig['id']) => void;
 }
 
-// Internal requirement: user has to achieve sufficient sharing synergy to break the pot
-const SECRET_REQUIRED_SHARES = 1000;
+// Exact percentage calculation based on user requirements:
+// 1. First 3 taps = 10%
+// 2. 30 shares = 20%
+// 3. 100 shares = 50%
+// 4. 500 shares = 80%
+// 5. 1000 shares = 99%
+// 6. > 1000 shares = 100% (keep on sharing)
+export function getPotProgressState(taps: number, shares: number) {
+  if (taps === 0) {
+    return {
+      percent: 0,
+      milestoneTitle: '0% Start',
+      hint: 'Tap the sacred pot to begin (3 taps = 10%)',
+      isFortified: false,
+      isShatterReady: false,
+    };
+  }
+
+  if (taps === 1) {
+    return {
+      percent: 3,
+      milestoneTitle: '3% (Tap 1 of 3)',
+      hint: 'Hairline crack forming! 2 more taps for 10%',
+      isFortified: false,
+      isShatterReady: false,
+    };
+  }
+
+  if (taps === 2) {
+    return {
+      percent: 7,
+      milestoneTitle: '7% (Tap 2 of 3)',
+      hint: 'Surface fissures spreading! 1 more tap for 10%',
+      isFortified: false,
+      isShatterReady: false,
+    };
+  }
+
+  // taps >= 3
+  if (shares === 0) {
+    return {
+      percent: 10,
+      milestoneTitle: '10% (3 Taps Reached)',
+      hint: 'Terracotta clay is fortified! Share on WhatsApp & Instagram to soften the clay',
+      isFortified: true,
+      isShatterReady: false,
+    };
+  }
+
+  if (shares < 30) {
+    const p = Math.min(19, Math.round(10 + (shares / 30) * 10));
+    return {
+      percent: p,
+      milestoneTitle: `${p}% (${shares}/30 Shares)`,
+      hint: `Reach 30 shares on WhatsApp/Instagram for 20% power! (${30 - shares} shares left)`,
+      isFortified: true,
+      isShatterReady: false,
+    };
+  }
+
+  if (shares < 100) {
+    const p = Math.min(49, Math.round(20 + ((shares - 30) / 70) * 30));
+    return {
+      percent: p,
+      milestoneTitle: `${p}% (${shares}/100 Shares)`,
+      hint: `Reach 100 shares for 50% power! Clay is visibly softening (${100 - shares} shares left)`,
+      isFortified: true,
+      isShatterReady: false,
+    };
+  }
+
+  if (shares < 500) {
+    const p = Math.min(79, Math.round(50 + ((shares - 100) / 400) * 30));
+    return {
+      percent: p,
+      milestoneTitle: `${p}% (${shares}/500 Shares)`,
+      hint: `Reach 500 shares for 80% power! Deep fissures opening (${500 - shares} shares left)`,
+      isFortified: true,
+      isShatterReady: false,
+    };
+  }
+
+  if (shares < 1000) {
+    const p = Math.min(99, Math.round(80 + ((shares - 500) / 500) * 19));
+    return {
+      percent: p,
+      milestoneTitle: `${p}% (${shares}/1000 Shares)`,
+      hint: `Reach 1,000 shares for 99% power! Almost ready to shatter (${1000 - shares} shares left)`,
+      isFortified: true,
+      isShatterReady: false,
+    };
+  }
+
+  // shares >= 1000
+  return {
+    percent: 100,
+    milestoneTitle: `100% (${shares} Shares) — UNLOCKED!`,
+    hint: `✨ 100% Power unlocked! Tap the pot to shatter & claim your prize! Keep on sharing for extra lucky draw tickets!`,
+    isFortified: false,
+    isShatterReady: true,
+  };
+}
 
 export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
   pots,
@@ -30,28 +130,26 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
   onRequestClaim,
 }) => {
   const [tapCount, setTapCount] = useState(0);
+  const [sharesCount, setSharesCount] = useState(0);
   const [isCracked, setIsCracked] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [prize, setPrize] = useState<PrizeResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [tapFeedbackText, setTapFeedbackText] = useState('');
-  
-  // Secret share tracking (without displaying raw number in UI)
-  const [sharesCount, setSharesCount] = useState<number>(0);
-  const [showShareModal, setShowShareModal] = useState<boolean>(false);
-  const [shareFeedback, setShareFeedback] = useState<string>('');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState('');
 
   const activePot = pots.find((p) => p.id === activePotId) || pots[0];
   const isUyyala = activePot.id === 'uyyala';
 
-  const isClaySoftened = sharesCount >= SECRET_REQUIRED_SHARES;
-  const sharePowerPercentage = Math.min(Math.round((sharesCount / SECRET_REQUIRED_SHARES) * 100), 100);
+  const progressState = getPotProgressState(tapCount, sharesCount);
 
   const resetPot = (newPotId?: PotConfig['id']) => {
     if (newPotId) {
       onSelectPot(newPotId);
     }
     setTapCount(0);
+    setSharesCount(0);
     setIsCracked(false);
     setIsShaking(false);
     setPrize(null);
@@ -62,78 +160,88 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
   };
 
   const triggerConfetti = () => {
-    // Multi-stage confetti burst in Gold, Peacock Teal, and Rani Pink
     const colors = ['#E8B923', '#1B7A6E', '#C6296F', '#FFFDF7', '#B8860B'];
-    
-    // Center cannon burst
     confetti({
-      particleCount: 90,
-      spread: 75,
+      particleCount: 100,
+      spread: 80,
       origin: { y: 0.6 },
       colors,
-      ticks: 220,
+      ticks: 240,
     });
 
-    // Left & Right celebratory side cannons
     setTimeout(() => {
       confetti({
-        particleCount: 60,
+        particleCount: 70,
         angle: 60,
-        spread: 60,
+        spread: 65,
         origin: { x: 0.1, y: 0.7 },
         colors,
       });
       confetti({
-        particleCount: 60,
+        particleCount: 70,
         angle: 120,
-        spread: 60,
+        spread: 65,
         origin: { x: 0.9, y: 0.7 },
         colors,
       });
     }, 150);
   };
 
-  const executeShareAction = (platform: 'whatsapp' | 'telegram' | 'copy' | 'boost') => {
+  const handleShareAction = (platform: 'whatsapp' | 'instagram' | 'copy' | 'boost30' | 'boost100' | 'boost500' | 'boost1000' | 'boost25') => {
     const shareUrl = window.location.href;
-    const devoteeName = devoteeProfile?.name ? `${devoteeProfile.name}'s` : 'my';
-    const shareText = `🦚 Shri Krishna Janmashtami Mahotsav! Help me crack ${devoteeName} auspicious ${
-      isUyyala ? 'Uyyala Kunda' : 'Venna Kunda'
-    } to win the ₹1,000 Grand Cash Prize & Luxury Sweets Hamper! Tap here to claim & crack yours: ${shareUrl}`;
+    const devoteeName = devoteeProfile?.name ? devoteeProfile.name : 'Devotee';
+    const potLabel = isUyyala ? 'Uyyala Kunda (₹9 Royal Matka)' : 'Venna Kunda (₹5 Matka)';
+    
+    const shareText = `🦚 Shri Krishna Janmashtami Mahotsav! Help ${devoteeName} crack their sacred ${potLabel} to win the ₹1,000 Grand Cash Prize and Divine Sweets! Tap here to claim & crack yours: ${shareUrl} #KrishnaJanmashtami #CrackYourPot`;
 
-    let addedPower = 250;
+    let boostAmount = 10;
 
     if (platform === 'whatsapp') {
-      addedPower = 350;
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-      setShareFeedback('Shared to WhatsApp! Sacred clay softened significantly!');
-    } else if (platform === 'telegram') {
-      addedPower = 300;
-      window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank');
-      setShareFeedback('Shared to Telegram! Clay strength weakened!');
+      boostAmount = 15;
+      const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+      window.open(whatsappUrl, '_blank');
+      setShareFeedback(`✅ Directing to WhatsApp! +15 Shares added. Clay is softening!`);
+    } else if (platform === 'instagram') {
+      boostAmount = 20;
+      // Copy festive caption for easy sharing on Instagram Story/DM/Bio
+      navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+      window.open('https://www.instagram.com/', '_blank');
+      setShareFeedback(`✅ Directing to Instagram & festive caption copied to clipboard! +20 Shares added.`);
     } else if (platform === 'copy') {
-      addedPower = 250;
+      boostAmount = 10;
       navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-      setShareFeedback('Invite link copied! Share with groups to unlock full power.');
-    } else if (platform === 'boost') {
-      addedPower = 400;
-      setShareFeedback('Community festive squad invited! Clay armor softening rapidly.');
+      setShareFeedback('✅ Link copied to clipboard! Share in your chats.');
+    } else if (platform === 'boost30') {
+      boostAmount = 30;
+      setShareFeedback('✅ 30 Shares Group Broadcast logged! 20% Milestone Reached!');
+    } else if (platform === 'boost100') {
+      boostAmount = 100;
+      setShareFeedback('✅ 100 Shares Squad Blast logged! 50% Milestone Reached!');
+    } else if (platform === 'boost500') {
+      boostAmount = 500;
+      setShareFeedback('✅ 500 Shares Devotee Circle reached! 80% Milestone Reached!');
+    } else if (platform === 'boost1000') {
+      boostAmount = 1000;
+      setShareFeedback('✅ 1,000 Shares Maha Sankirtan reached! 99% - 100% Unlocked!');
+    } else if (platform === 'boost25') {
+      boostAmount = 25;
+      setShareFeedback('✅ +25 Extra Shares logged! Keep on sharing for bonus tickets!');
     }
 
-    const nextShares = sharesCount + addedPower;
+    const nextShares = sharesCount + boostAmount;
     setSharesCount(nextShares);
 
-    if (nextShares >= SECRET_REQUIRED_SHARES) {
-      setTapFeedbackText('✨ Sacred clay is now completely weakened! Deliver the final strike to shatter!');
-      setTimeout(() => {
-        setShowShareModal(false);
-      }, 1200);
+    if (nextShares >= 1000) {
+      setTapFeedbackText('✨ 100% Power Unlocked! Tap the pot to shatter & claim your prize!');
     }
   };
 
   const handlePotTap = () => {
-    // If devotee has not claimed their pot yet, prompt the form
+    // If devotee has not claimed their pot yet, prompt the lead form
     if (!devoteeProfile) {
       onRequestClaim(activePot.id);
       return;
@@ -141,185 +249,187 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
 
     if (isCracked) return;
 
-    // Check if the pot requires sharing before final strikes
-    if (tapCount >= 3 && !isClaySoftened) {
-      setIsShaking(true);
-      playPotTap(3, !soundEnabled);
-      setTimeout(() => setIsShaking(false), 300);
-      setTapFeedbackText('🛡️ Earthen pot is heavily fortified! Share with friends to weaken the clay & unlock the final shattering blow!');
-      setShowShareModal(true);
-      return;
-    }
-
-    const nextTap = tapCount + 1;
-    setTapCount(nextTap);
-
-    // Audio & Vibration
-    if (nextTap < 5) {
+    // First 3 taps: user taps pot to reach 10%
+    if (tapCount < 3) {
+      const nextTap = tapCount + 1;
+      setTapCount(nextTap);
       playPotTap(nextTap, !soundEnabled);
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 300);
 
-      const feedbacks = [
-        '✦ Tap 1/5: Hairline crack formed!',
-        '✦ Tap 2/5: Fissures spreading across the terracotta!',
-        '✦ Tap 3/5: Makkhan (Butter) dripping out!',
-        '✦ Tap 4/5: Divine golden energy surging — Final heavy blow!',
-      ];
-      setTapFeedbackText(feedbacks[nextTap - 1] || '');
-    } else {
-      // 5th TAP: SHATTER!
-      setIsCracked(true);
-      playPotShatter(!soundEnabled);
-      setTimeout(() => playCelebrationFanfare(!soundEnabled), 200);
-      triggerConfetti();
-
-      // Generate randomized prize based on selected pot tier
-      const randomTicketNum = `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
-      let prizeData: PrizeResult;
-
-      if (isUyyala) {
-        const uyyalaPrizes: Omit<PrizeResult, 'ticketNumbers' | 'claimExpiry'>[] = [
-          {
-            id: 'uyy-1',
-            title: '50% Off Divine Janmashtami Sweets & Ghee Hamper',
-            teluguTitle: '50% తగ్గింపు పవిత్ర ప్రసాదం హాంపర్',
-            potType: 'uyyala',
-            category: 'hamper',
-            discountText: '50% FLAT OFF',
-            voucherCode: 'MAKSHI50',
-            description: 'Flat 50% discount on festive sweets, pure A2 cow ghee, and temple prasad box.',
-            grandDrawTickets: 3,
-            rarity: 'Divine Grand',
-          },
-          {
-            id: 'uyy-2',
-            title: '₹250 Instant Cashback + Handcrafted Flute Brooch',
-            teluguTitle: '₹250 తక్షణ క్యాష్‌బ్యాక్ + వేణువు బ్రోచ్',
-            potType: 'uyyala',
-            category: 'cashback',
-            discountText: '₹250 CASHBACK',
-            voucherCode: 'CASH250GOPAL',
-            description: 'Direct wallet cashback + commemorative gold-plated bansuri keepsake.',
-            grandDrawTickets: 3,
-            rarity: 'Rare',
-          },
-          {
-            id: 'uyy-3',
-            title: '40% Off Handwoven Silk & Puja Essentials',
-            teluguTitle: '40% తగ్గింపు పూజా వస్త్రాలు & సామాగ్రి',
-            potType: 'uyyala',
-            category: 'discount',
-            discountText: '40% OFF',
-            voucherCode: 'RADHA40',
-            description: 'Valid on festive apparel, traditional brass diyas, and puja sets.',
-            grandDrawTickets: 3,
-            rarity: 'Divine Grand',
-          },
-        ];
-        const selected = uyyalaPrizes[Math.floor(Math.random() * uyyalaPrizes.length)];
-        const extraTickets = [
-          randomTicketNum,
-          `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
-          `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
-        ];
-        prizeData = {
-          ...selected,
-          ticketNumbers: extraTickets,
-          claimExpiry: '10th September 2026',
-        };
-      } else {
-        const vennaPrizes: Omit<PrizeResult, 'ticketNumbers' | 'claimExpiry'>[] = [
-          {
-            id: 'ven-1',
-            title: '15% Off Festive Grocery & Sweets',
-            teluguTitle: '15% పండుగ స్వీట్లు & సామాగ్రి తగ్గింపు',
-            potType: 'venna',
-            category: 'discount',
-            discountText: '15% OFF',
-            voucherCode: 'VENNA15',
-            description: 'Valid on all festive collections and sweets across verified stores.',
-            grandDrawTickets: 1,
-            rarity: 'Common',
-          },
-          {
-            id: 'ven-2',
-            title: 'Free Shipping + A2 Ghee Trial Sample',
-            teluguTitle: 'ఉచిత డెలివరీ + నెయ్యి శాంపిల్',
-            potType: 'venna',
-            category: 'hamper',
-            discountText: 'FREE SHIPPING',
-            voucherCode: 'MAKPREP',
-            description: 'Zero delivery charges on all orders plus free dry fruit sample pack.',
-            grandDrawTickets: 1,
-            rarity: 'Rare',
-          },
-          {
-            id: 'ven-3',
-            title: '₹50 Instant Cashback Voucher',
-            teluguTitle: '₹50 తక్షణ క్యాష్‌బ్యాక్',
-            potType: 'venna',
-            category: 'cashback',
-            discountText: '₹50 CASHBACK',
-            voucherCode: 'KRISHNA50',
-            description: 'Instant ₹50 coupon code redeemable on checkout.',
-            grandDrawTickets: 1,
-            rarity: 'Common',
-          },
-        ];
-        const selected = vennaPrizes[Math.floor(Math.random() * vennaPrizes.length)];
-        prizeData = {
-          ...selected,
-          ticketNumbers: [randomTicketNum],
-          claimExpiry: '10th September 2026',
-        };
+      if (nextTap === 1) {
+        setTapFeedbackText('✦ Tap 1/3 (3%): Hairline crack forming! Tap 2 more times for 10%');
+      } else if (nextTap === 2) {
+        setTapFeedbackText('✦ Tap 2/3 (7%): Surface fissures spreading! Tap 1 more time for 10%');
+      } else if (nextTap === 3) {
+        setTapFeedbackText('🛡️ Tap 3/3 (10% Reached): Pot is heavily fortified! Share on WhatsApp & Instagram to soften the clay!');
+        setShowShareModal(true);
       }
-
-      setPrize(prizeData);
-      onWinPrize(prizeData);
+      return;
     }
+
+    // Taps >= 3: check if shares reached 1000 (100% power)
+    if (sharesCount < 1000) {
+      setIsShaking(true);
+      playPotTap(3, !soundEnabled);
+      setTimeout(() => setIsShaking(false), 300);
+      setTapFeedbackText(`🛡️ Earthen pot is fortified at ${progressState.percent}%! Share on WhatsApp & Instagram to reach 100%!`);
+      setShowShareModal(true);
+      return;
+    }
+
+    // Ready to SHATTER at 100%!
+    setIsCracked(true);
+    playPotShatter(!soundEnabled);
+    setTimeout(() => playCelebrationFanfare(!soundEnabled), 200);
+    triggerConfetti();
+
+    // Generate randomized prize
+    const randomTicketNum = `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    let prizeData: PrizeResult;
+
+    if (isUyyala) {
+      const uyyalaPrizes: Omit<PrizeResult, 'ticketNumbers' | 'claimExpiry'>[] = [
+        {
+          id: 'uyy-1',
+          title: '50% Off Divine Janmashtami Sweets & Ghee Hamper',
+          teluguTitle: '50% తగ్గింపు పవిత్ర ప్రసాదం హాంపర్',
+          potType: 'uyyala',
+          category: 'hamper',
+          discountText: '50% FLAT OFF',
+          voucherCode: 'MAKSHI50',
+          description: 'Flat 50% discount on festive sweets, pure A2 cow ghee, and temple prasad box.',
+          grandDrawTickets: 3,
+          rarity: 'Divine Grand',
+        },
+        {
+          id: 'uyy-2',
+          title: '₹250 Instant Cashback + Handcrafted Flute Brooch',
+          teluguTitle: '₹250 తక్షణ క్యాష్‌బ్యాక్ + వేణువు బ్రోచ్',
+          potType: 'uyyala',
+          category: 'cashback',
+          discountText: '₹250 CASHBACK',
+          voucherCode: 'CASH250GOPAL',
+          description: 'Direct wallet cashback + commemorative gold-plated bansuri keepsake.',
+          grandDrawTickets: 3,
+          rarity: 'Rare',
+        },
+        {
+          id: 'uyy-3',
+          title: '40% Off Handwoven Silk & Puja Essentials',
+          teluguTitle: '40% తగ్గింపు పూజా వస్త్రాలు & సామాగ్రి',
+          potType: 'uyyala',
+          category: 'discount',
+          discountText: '40% OFF',
+          voucherCode: 'RADHA40',
+          description: 'Valid on festive apparel, traditional brass diyas, and puja sets.',
+          grandDrawTickets: 3,
+          rarity: 'Divine Grand',
+        },
+      ];
+      const selected = uyyalaPrizes[Math.floor(Math.random() * uyyalaPrizes.length)];
+      const extraTickets = [
+        randomTicketNum,
+        `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+        `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+      ];
+      prizeData = {
+        ...selected,
+        ticketNumbers: extraTickets,
+        claimExpiry: '10th September 2026',
+      };
+    } else {
+      const vennaPrizes: Omit<PrizeResult, 'ticketNumbers' | 'claimExpiry'>[] = [
+        {
+          id: 'ven-1',
+          title: '15% Off Festive Grocery & Sweets',
+          teluguTitle: '15% పండుగ స్వీట్లు & సామాగ్రి తగ్గింపు',
+          potType: 'venna',
+          category: 'discount',
+          discountText: '15% OFF',
+          voucherCode: 'VENNA15',
+          description: 'Valid on all festive collections and sweets across verified stores.',
+          grandDrawTickets: 1,
+          rarity: 'Common',
+        },
+        {
+          id: 'ven-2',
+          title: 'Free Shipping + A2 Ghee Trial Sample',
+          teluguTitle: 'ఉచిత డెలివరీ + నెయ్యి శాంపిల్',
+          potType: 'venna',
+          category: 'hamper',
+          discountText: 'FREE SHIPPING',
+          voucherCode: 'MAKPREP',
+          description: 'Zero delivery charges on all orders plus free dry fruit sample pack.',
+          grandDrawTickets: 1,
+          rarity: 'Rare',
+        },
+        {
+          id: 'ven-3',
+          title: '₹50 Instant Cashback Voucher',
+          teluguTitle: '₹50 తక్షణ క్యాష్‌బ్యాక్',
+          potType: 'venna',
+          category: 'cashback',
+          discountText: '₹50 CASHBACK',
+          voucherCode: 'KRISHNA50',
+          description: 'Instant ₹50 coupon code redeemable on checkout.',
+          grandDrawTickets: 1,
+          rarity: 'Common',
+        },
+      ];
+      const selected = vennaPrizes[Math.floor(Math.random() * vennaPrizes.length)];
+      prizeData = {
+        ...selected,
+        ticketNumbers: [randomTicketNum],
+        claimExpiry: '10th September 2026',
+      };
+    }
+
+    setPrize(prizeData);
+    onWinPrize(prizeData);
   };
 
   const copyVoucher = () => {
-    if (!prize) return;
-    navigator.clipboard.writeText(prize.voucherCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    if (prize) {
+      navigator.clipboard.writeText(prize.voucherCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
   };
 
   return (
     <div
       id="crack-interactive-arena"
-      className="relative w-full max-w-4xl mx-auto rounded-3xl p-6 sm:p-10 border border-[#E8B923]/30 bg-gradient-to-b from-[#14224A]/95 via-[#0B1230]/95 to-[#14224A]/95 shadow-2xl backdrop-blur-md overflow-hidden"
+      className="w-full max-w-5xl mx-auto rounded-3xl bg-gradient-to-b from-[#0E1838] via-[#0A122C] to-[#060B1E] border-2 border-[#E8B923]/40 p-4 sm:p-8 relative shadow-[0_0_60px_rgba(232,185,35,0.15)]"
     >
-      {/* Devotee Pot Personalization Banner */}
+      {/* Devotee Banner */}
       {devoteeProfile ? (
-        <div className="mb-4 p-3 rounded-2xl bg-[#080E24] border border-[#E8B923]/40 flex items-center justify-between gap-3 shadow-inner">
+        <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#1B7A6E]/30 via-[#0B1230] to-[#E8B923]/20 border border-[#E8B923]/50 flex items-center justify-between gap-3 shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#1B7A6E] to-[#E8B923] flex items-center justify-center text-[#0B1230] font-bold text-sm shadow">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1B7A6E] to-[#E8B923] p-0.5 flex items-center justify-center text-[#0B1230] shadow">
               <NemaliIcon className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm font-bold text-[#F6EEDD]">
+                <span className="text-sm sm:text-base font-bold text-[#F6EEDD]">
                   {devoteeProfile.name}&rsquo;s Sacred Matka
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1B7A6E]/30 text-emerald-300 border border-emerald-500/40 font-semibold">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1B7A6E]/40 text-emerald-300 border border-emerald-500/50 font-semibold">
                   ✓ Claimed
                 </span>
               </div>
-              <p className="text-[11px] text-[#E8B923]/80">
-                Devotee from <span className="font-semibold text-white">{devoteeProfile.city}</span> &bull; Mob: {devoteeProfile.phone.slice(0, 4)}XXXX{devoteeProfile.phone.slice(-2)}
+              <p className="text-xs text-[#E8B923]">
+                {isUyyala ? 'Uyyala Kunda (₹9 &bull; 3x Draw Entries)' : 'Venna Kunda (₹5 &bull; 1x Draw Entry)'}
               </p>
             </div>
           </div>
 
           <button
             onClick={() => onRequestClaim(activePot.id)}
-            className="px-2.5 py-1 rounded-lg bg-[#14224A] border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center gap-1 hover:bg-[#1B7A6E]/30 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-[#14224A] border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center gap-1.5 hover:bg-[#1B7A6E]/30 transition-all cursor-pointer"
           >
-            <Edit3 className="w-3 h-3" />
-            <span className="hidden sm:inline">Edit Details</span>
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>Edit Name</span>
           </button>
         </div>
       ) : (
@@ -328,10 +438,10 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
             <NemaliIcon className="w-8 h-8 shrink-0 text-[#E8B923]" />
             <div>
               <span className="text-xs sm:text-sm font-bold text-[#F6EEDD] block">
-                Personalize & Submit Your Own Sacred Pot
+                Submit Devotee Name to Claim Pot
               </span>
               <span className="text-[11px] text-[#E8B923]/80">
-                Enter your Name, City & Phone to engrave your pot and claim verified cash draw entries!
+                Enter your name to personalize your pot & enter the 180 Pot Crackers Draw!
               </span>
             </div>
           </div>
@@ -342,13 +452,13 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
             className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#E8B923] to-[#C6296F] text-[#0B1230] font-bold text-xs flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow cursor-pointer whitespace-nowrap"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Submit Devotee Pot</span>
+            <span>Enter Name</span>
           </button>
         </div>
       )}
 
-      {/* Top Header / Pot Switcher Tabs */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-[#E8B923]/20">
+      {/* Top Header & Pot Selector */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-5 border-b border-[#E8B923]/20">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[#E8B923]/10 border border-[#E8B923]/30 flex items-center justify-center text-[#E8B923]">
             <Flame className="w-5 h-5" />
@@ -360,14 +470,14 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                 {isUyyala ? 'Uyyala Kunda (₹9)' : 'Venna Kunda (₹5)'}
               </span>
             </h2>
-            <p className="text-xs sm:text-sm text-[#F6EEDD]/70">
-              Share to soften the sacred clay, then tap to shatter & reveal divine rewards
+            <p className="text-xs text-[#F6EEDD]/75">
+              3 Taps = 10% &bull; Share on WhatsApp & Instagram to reach 100% and shatter!
             </p>
           </div>
         </div>
 
-        {/* Controls: Pot Selector & Sound Toggle */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        {/* Controls */}
+        <div className="flex items-center gap-2.5">
           <div className="bg-[#0B1230] p-1 rounded-xl border border-[#E8B923]/30 flex items-center">
             <button
               id="tab-pot-venna"
@@ -396,107 +506,146 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
           <button
             id="btn-toggle-sound"
             onClick={onToggleSound}
-            title={soundEnabled ? 'Mute Dhol & Bell Sounds' : 'Unmute Sound Effects'}
-            className="p-2 rounded-xl bg-[#0B1230] border border-[#E8B923]/30 text-[#E8B923] hover:bg-[#14224A] transition-colors cursor-pointer"
+            title={soundEnabled ? 'Mute Sounds' : 'Unmute Sounds'}
+            className="p-2.5 rounded-xl bg-[#0B1230] border border-[#E8B923]/30 text-[#E8B923] hover:bg-[#14224A] transition-colors cursor-pointer"
           >
-            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-gray-400" />}
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
           </button>
         </div>
       </div>
 
-      {/* Sharing Power / Clay Weakening Status Banner */}
-      <div className="mt-6 p-4 rounded-2xl bg-[#0B1230]/80 border border-[#E8B923]/25 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className={`p-2.5 rounded-xl border ${
-            isClaySoftened 
-              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-400' 
-              : 'bg-[#14224A] border-[#E8B923]/40 text-[#E8B923]'
-          }`}>
-            {isClaySoftened ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+      {/* MILESTONE REQUIREMENTS TRACKER */}
+      <div className="mt-5 p-4 rounded-2xl bg-[#0B1230]/90 border border-[#E8B923]/30 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs sm:text-sm font-bold text-[#E8B923] flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4" />
+              Clay Softening & Strike Power: {progressState.percent}%
+            </span>
+            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+              progressState.isShatterReady
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 animate-pulse'
+                : progressState.isFortified
+                ? 'bg-[#E8B923]/20 text-[#E8B923] border border-[#E8B923]/40'
+                : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+            }`}>
+              {progressState.isShatterReady ? '💥 100% SHATTER READY' : progressState.milestoneTitle}
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-bold text-[#F6EEDD]">
-                Sacred Clay Softening & Share Power
-              </span>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                isClaySoftened
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                  : 'bg-[#E8B923]/20 text-[#E8B923] border border-[#E8B923]/40'
-              }`}>
-                {isClaySoftened ? '✓ READY TO SHATTER' : `${sharePowerPercentage}% WEAKENED`}
-              </span>
-            </div>
-            <p className="text-[11px] text-[#F6EEDD]/70 mt-0.5">
-              {isClaySoftened
-                ? 'The clay armor is broken! Deliver the final strike to reveal your prize.'
-                : 'Share with friends & groups on WhatsApp/Telegram to weaken the earthen clay.'}
-            </p>
+
+          <div className="text-xs text-[#F6EEDD]/80 font-medium">
+            Total Shares: <strong className="text-[#E8B923]">{sharesCount}</strong> &bull; Taps: <strong className="text-[#E8B923]">{tapCount}</strong>
           </div>
         </div>
 
-        {/* Quick Share Buttons */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
-          <button
-            onClick={() => executeShareAction('whatsapp')}
-            className="px-3 py-1.5 rounded-xl bg-emerald-600/90 text-white font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-500 active:scale-95 transition-all shadow cursor-pointer"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>WhatsApp</span>
-          </button>
+        {/* Progress Bar */}
+        <div className="w-full h-3.5 bg-[#080E24] rounded-full border border-[#E8B923]/40 p-0.5 overflow-hidden relative">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              progressState.isShatterReady
+                ? 'bg-gradient-to-r from-emerald-500 via-[#E8B923] to-[#FFE27A] shadow-[0_0_15px_rgba(232,185,35,0.8)]'
+                : 'bg-gradient-to-r from-[#1B7A6E] via-[#C6296F] to-[#E8B923]'
+            }`}
+            style={{ width: `${Math.max(progressState.percent, 3)}%` }}
+          />
+        </div>
 
-          <button
-            onClick={() => executeShareAction('telegram')}
-            className="px-3 py-1.5 rounded-xl bg-[#2AABEE]/90 text-white font-bold text-xs flex items-center gap-1.5 hover:bg-[#2AABEE] active:scale-95 transition-all shadow cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Telegram</span>
-          </button>
+        {/* Milestone Steps Bar (3 Taps: 10% | 30s: 20% | 100s: 50% | 500s: 80% | 1000s: 99% | 1000+: 100%) */}
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-1.5 pt-1 text-[11px]">
+          <div className={`p-1.5 rounded-lg border text-center ${
+            tapCount >= 3 || sharesCount > 0
+              ? 'bg-[#1B7A6E]/30 border-[#1B7A6E] text-emerald-300 font-bold'
+              : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
+          }`}>
+            <span className="block">3 Taps</span>
+            <strong className="text-xs">10%</strong>
+          </div>
 
-          <button
-            onClick={() => executeShareAction('boost')}
-            className="px-3 py-1.5 rounded-xl bg-[#E8B923] text-[#0B1230] font-bold text-xs flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Boost Power</span>
-          </button>
+          <div className={`p-1.5 rounded-lg border text-center ${
+            sharesCount >= 30
+              ? 'bg-[#1B7A6E]/30 border-[#1B7A6E] text-emerald-300 font-bold'
+              : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
+          }`}>
+            <span className="block">30 Shares</span>
+            <strong className="text-xs">20%</strong>
+          </div>
+
+          <div className={`p-1.5 rounded-lg border text-center ${
+            sharesCount >= 100
+              ? 'bg-[#1B7A6E]/30 border-[#1B7A6E] text-emerald-300 font-bold'
+              : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
+          }`}>
+            <span className="block">100 Shares</span>
+            <strong className="text-xs">50%</strong>
+          </div>
+
+          <div className={`p-1.5 rounded-lg border text-center ${
+            sharesCount >= 500
+              ? 'bg-[#1B7A6E]/30 border-[#1B7A6E] text-emerald-300 font-bold'
+              : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
+          }`}>
+            <span className="block">500 Shares</span>
+            <strong className="text-xs">80%</strong>
+          </div>
+
+          <div className={`p-1.5 rounded-lg border text-center ${
+            sharesCount >= 1000
+              ? 'bg-[#1B7A6E]/30 border-[#1B7A6E] text-emerald-300 font-bold'
+              : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
+          }`}>
+            <span className="block">1000 Shares</span>
+            <strong className="text-xs">99%</strong>
+          </div>
+
+          <div className={`p-1.5 rounded-lg border text-center ${
+            sharesCount > 1000 || isCracked
+              ? 'bg-gradient-to-r from-[#E8B923]/40 to-[#C6296F]/40 border-[#E8B923] text-[#FFE27A] font-extrabold shadow'
+              : 'bg-[#080E24] border-[#E8B923]/20 text-[#F6EEDD]/60'
+          }`}>
+            <span className="block">Keep Sharing</span>
+            <strong className="text-xs">100% 💥</strong>
+          </div>
+        </div>
+
+        {/* Primary WhatsApp & Instagram Direct Share Buttons */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          <p className="text-xs text-[#F6EEDD]/80">
+            {progressState.hint}
+          </p>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {/* WhatsApp Share Button */}
+            <button
+              id="btn-arena-share-whatsapp"
+              onClick={() => handleShareAction('whatsapp')}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-[#0B1230] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-[#25D366]/30 active:scale-95 transition-all cursor-pointer"
+            >
+              <WhatsAppIcon className="w-4 h-4 text-[#0B1230]" />
+              <span>Share on WhatsApp</span>
+            </button>
+
+            {/* Instagram Share Button */}
+            <button
+              id="btn-arena-share-instagram"
+              onClick={() => handleShareAction('instagram')}
+              className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
+            >
+              <InstagramIcon className="w-4 h-4 text-white" />
+              <span>Share on Instagram</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Interactive Stage */}
-      <div className="relative py-8 sm:py-10 flex flex-col items-center justify-center min-h-[380px] sm:min-h-[420px]">
-        {/* Progress Bar & Status */}
-        <div className="w-full max-w-md mb-6">
-          <div className="flex items-center justify-between text-xs sm:text-sm mb-1.5 font-medium">
-            <span className="text-[#E8B923] flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
-              Strike Force: {Math.min(tapCount * 20, 100)}%
-            </span>
-            <span className="text-[#F6EEDD]/80">
-              {isCracked ? 'Shattered!' : `${5 - tapCount} taps remaining`}
-            </span>
-          </div>
-
-          <div className="w-full h-3 bg-[#0B1230] rounded-full border border-[#E8B923]/30 p-0.5 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                isUyyala
-                  ? 'bg-gradient-to-r from-[#1B7A6E] via-[#C6296F] to-[#E8B923]'
-                  : 'bg-gradient-to-r from-[#B8860B] to-[#E8B923]'
-              }`}
-              style={{ width: `${Math.min(tapCount * 20, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* The 3D Pot Cracking Canvas */}
+      <div className="relative py-8 flex flex-col items-center justify-center min-h-[360px]">
         {!isCracked ? (
           <div className="relative flex flex-col items-center">
             {/* Devotee Name Plate on Pot */}
             {devoteeProfile && (
-              <div className="mb-3 px-4 py-1 rounded-full bg-[#080E24] border border-[#E8B923]/50 text-[#E8B923] text-xs font-bold tracking-wider shadow-md flex items-center gap-1.5 animate-pulse">
-                <span>🦚</span>
-                <span>{devoteeProfile.name} ({devoteeProfile.city})</span>
+              <div className="mb-3 px-4 py-1.5 rounded-full bg-[#080E24] border border-[#E8B923]/60 text-[#E8B923] text-xs sm:text-sm font-bold tracking-wider shadow-lg flex items-center gap-2">
+                <NemaliIcon className="w-4 h-4" />
+                <span>{devoteeProfile.name}&rsquo;s Sacred Pot</span>
               </div>
             )}
 
@@ -511,11 +660,11 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
               {/* Outer Golden Aura Pulsing */}
               <div
                 className={`absolute -inset-4 rounded-full blur-xl pointer-events-none transition-opacity duration-300 ${
-                  isClaySoftened
-                    ? 'bg-[#E8B923]/50 opacity-100 animate-pulse'
-                    : tapCount >= 2
-                    ? 'bg-[#E8B923]/30 opacity-75'
-                    : 'bg-[#E8B923]/20 opacity-60 group-hover:opacity-90'
+                  progressState.isShatterReady
+                    ? 'bg-[#E8B923]/60 opacity-100 animate-pulse'
+                    : progressState.percent >= 50
+                    ? 'bg-[#E8B923]/35 opacity-80'
+                    : 'bg-[#E8B923]/20 opacity-50 group-hover:opacity-80'
                 }`}
               />
 
@@ -588,7 +737,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                     fill="#FFFDF7"
                   />
 
-                  {/* Belly Ornamentation */}
+                  {/* Ornamentation */}
                   {isUyyala ? (
                     <g>
                       <path d="M 36,132 Q 100,152 164,132" stroke="var(--gold)" strokeWidth="3" fill="none" />
@@ -605,15 +754,15 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                     </g>
                   )}
 
-                  {/* ================= STAGE 1 CRACK: Hairline ================= */}
-                  {tapCount >= 1 && (
+                  {/* Stage 1: Tap 1 - 3% crack */}
+                  {(tapCount >= 1 || progressState.percent >= 3) && (
                     <g stroke="#FFFDF7" strokeWidth="1.2" strokeLinecap="round" opacity="0.9">
                       <path d="M 90,85 L 96,105 L 92,120 L 102,138" />
                     </g>
                   )}
 
-                  {/* ================= STAGE 2 CRACK: Branch Fissures ================= */}
-                  {tapCount >= 2 && (
+                  {/* Stage 2: Tap 2 / 20% (30 shares) */}
+                  {(tapCount >= 2 || progressState.percent >= 20) && (
                     <g stroke="#FFE899" strokeWidth="1.8" strokeLinecap="round" opacity="0.95">
                       <path d="M 96,105 L 120,118 L 132,135 L 140,150" />
                       <path d="M 92,120 L 74,136 L 62,148" />
@@ -621,8 +770,8 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                     </g>
                   )}
 
-                  {/* ================= STAGE 3 CRACK: Wide Gaps + Curd Drips ================= */}
-                  {tapCount >= 3 && (
+                  {/* Stage 3: 50% (100 shares) Gaps & Butter Drips */}
+                  {progressState.percent >= 50 && (
                     <g>
                       <path
                         d="M 90,85 L 96,105 L 120,118 L 132,135 L 140,150 L 136,152 L 118,122 L 95,108 Z"
@@ -641,8 +790,8 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                     </g>
                   )}
 
-                  {/* ================= STAGE 4 CRACK: Divine Glow Tension ================= */}
-                  {tapCount >= 4 && (
+                  {/* Stage 4: 80% - 99% (500-1000 shares) Divine Golden Tension */}
+                  {progressState.percent >= 80 && (
                     <g>
                       <path
                         d="M 60,146 L 140,150 M 90,85 L 108,180 M 70,100 L 130,165"
@@ -660,27 +809,34 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                 </svg>
               </div>
 
-              {/* Tap Hand Indicator overlay when starting */}
+              {/* Tap Hand or Ready Badge overlay */}
               {tapCount === 0 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <div className="px-4 py-2 rounded-full bg-[#0B1230]/90 border border-[#E8B923] text-[#E8B923] font-semibold text-xs sm:text-sm tracking-wide shadow-xl animate-bounce flex items-center gap-1.5">
-                    <span>👆 Tap to Break</span>
+                    <span>👆 Tap to Start (3 Taps for 10%)</span>
+                  </div>
+                </div>
+              )}
+
+              {progressState.isShatterReady && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div className="px-4 py-2 rounded-full bg-gradient-to-r from-[#E8B923] via-[#FFE27A] to-[#E8B923] text-[#0B1230] font-black text-xs sm:text-sm tracking-wide shadow-[0_0_25px_rgba(232,185,35,0.9)] animate-pulse flex items-center gap-1.5">
+                    <span>💥 100% UNLOCKED &bull; TAP TO SHATTER!</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Tap Feedback text */}
-            <p className="mt-4 text-xs sm:text-sm text-[#E8B923] font-medium tracking-wide min-h-[20px] text-center max-w-md">
-              {tapFeedbackText || (isClaySoftened ? '🌟 Sacred clay softened! Tap to shatter the matka!' : 'Tap the auspicious pot & share to weaken the clay')}
+            {/* Tap Feedback Text */}
+            <p className="mt-4 text-xs sm:text-sm text-[#E8B923] font-medium tracking-wide min-h-[22px] text-center max-w-md">
+              {tapFeedbackText || progressState.hint}
             </p>
           </div>
         ) : (
-          /* ================= STAGE 5: 3D SHATTER + PRIZE REVEAL ================= */
+          /* ================= SHATTERED + PRIZE REVEAL ================= */
           <div className="w-full flex flex-col items-center justify-center">
-            {/* 3D Scattered Flying Shards Animation */}
+            {/* 3D Scattered Flying Shards */}
             <div className="relative w-48 h-32 mb-4 preserve-3d">
-              {/* Shard 1 (Top Left) */}
               <div
                 className="absolute w-14 h-14 bg-gradient-to-br from-[#C85A32] to-[#4A180A] border border-[#E8B923]/60 rounded-tl-3xl shadow-lg transition-all duration-700"
                 style={{
@@ -688,7 +844,6 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   opacity: 0.85,
                 }}
               />
-              {/* Shard 2 (Top Right) */}
               <div
                 className="absolute right-2 w-16 h-12 bg-gradient-to-bl from-[#8F3B1E] to-[#381308] border border-[#C6296F]/70 rounded-tr-3xl shadow-lg transition-all duration-700"
                 style={{
@@ -696,7 +851,6 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   opacity: 0.85,
                 }}
               />
-              {/* Shard 3 (Bottom) */}
               <div
                 className="absolute bottom-0 left-12 w-20 h-10 bg-gradient-to-t from-[#4A180A] to-[#C85A32] border border-[#E8B923]/60 rounded-b-2xl shadow-lg transition-all duration-700"
                 style={{
@@ -704,7 +858,6 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   opacity: 0.75,
                 }}
               />
-              {/* Center Butter Splash with Peacock motif */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#E8B923]/40 via-[#FFFDF7] to-[#E8B923]/40 blur-sm animate-ping opacity-60" />
                 <div className="relative z-10">
@@ -719,7 +872,6 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                 id="prize-reveal-card"
                 className="w-full max-w-lg rounded-2xl p-6 sm:p-8 bg-gradient-to-b from-[#14224A] via-[#101B3D] to-[#0B1230] border-2 border-[#E8B923] shadow-[0_0_50px_rgba(232,185,35,0.35)] relative overflow-hidden transition-all transform animate-in fade-in slide-in-from-bottom-6 duration-500"
               >
-                {/* Gold Top Banner with Devotee Tag */}
                 <div className="flex items-center justify-between gap-2 pb-4 border-b border-[#E8B923]/20">
                   <div className="flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-[#E8B923]" />
@@ -732,7 +884,6 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   </span>
                 </div>
 
-                {/* Prize Title & Telugu subtitle */}
                 <div className="my-4 text-center">
                   <h3 className="text-2xl sm:text-3xl font-serif font-bold text-[#F6EEDD]">
                     {prize.title}
@@ -745,7 +896,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   </p>
                 </div>
 
-                {/* Voucher Code Box with 1-Click Copy */}
+                {/* Voucher Code Box */}
                 <div className="my-4 p-4 rounded-xl bg-[#0B1230] border border-[#E8B923]/40 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div>
                     <span className="text-[11px] text-[#F6EEDD]/60 uppercase tracking-wider block">
@@ -775,7 +926,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   </button>
                 </div>
 
-                {/* Grand Prize Lucky Draw Entries Generated */}
+                {/* Grand Prize Lucky Draw Entries */}
                 <div className="p-3.5 rounded-xl bg-[#1B7A6E]/20 border border-[#1B7A6E]/50 my-4">
                   <div className="flex items-center justify-between text-xs text-[#F6EEDD] mb-1">
                     <span className="font-semibold text-[#E8B923] flex items-center gap-1">
@@ -796,8 +947,30 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   </div>
                 </div>
 
-                {/* Reset & Action Buttons */}
-                <div className="mt-6 flex flex-col sm:flex-row items-center gap-3">
+                {/* Keep on sharing for bonus & Reset Buttons */}
+                <div className="mt-4 p-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <span className="text-xs text-[#E8B923] font-medium">
+                    Keep on sharing to multiply your Grand Draw tickets!
+                  </span>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => handleShareAction('whatsapp')}
+                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-[#25D366] text-[#0B1230] font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <WhatsAppIcon className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </button>
+                    <button
+                      onClick={() => handleShareAction('instagram')}
+                      className="flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#833AB4] to-[#FD1D1D] text-white font-bold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <InstagramIcon className="w-3.5 h-3.5" />
+                      <span>Instagram</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col sm:flex-row items-center gap-3">
                   <button
                     id="btn-crack-another"
                     onClick={() => resetPot()}
@@ -806,14 +979,6 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                     <RotateCcw className="w-4 h-4" />
                     <span>Crack Another Pot</span>
                   </button>
-
-                  <a
-                    href="#referral-boost-section"
-                    className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-[#14224A] text-[#F6EEDD] border border-[#E8B923]/40 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1B7A6E]/30 transition-all cursor-pointer"
-                  >
-                    <Share2 className="w-4 h-4 text-[#E8B923]" />
-                    <span>Boost Draw Odds</span>
-                  </a>
                 </div>
               </div>
             )}
@@ -821,87 +986,136 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
         )}
       </div>
 
-      {/* Share Requirement Modal / Drawer when Fortified Pot Resists Shatter */}
+      {/* SHARE MODAL / BOOST HUB WHEN FORTIFIED AT 10% */}
       {showShareModal && (
         <div
           id="pot-fortified-modal"
-          className="fixed inset-0 z-50 bg-[#0B1230]/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-[#0B1230]/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-3xl p-6 sm:p-8 bg-gradient-to-b from-[#14224A] via-[#0B1230] to-[#14224A] border-2 border-[#E8B923] shadow-2xl relative text-center animate-in zoom-in-95 duration-300"
+            className="w-full max-w-lg rounded-3xl p-6 sm:p-8 bg-gradient-to-b from-[#14224A] via-[#0B1230] to-[#14224A] border-2 border-[#E8B923] shadow-2xl relative text-center animate-in zoom-in-95 duration-300 my-auto"
           >
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#E8B923]/15 border border-[#E8B923]/40 flex items-center justify-center text-[#E8B923] mb-4">
-              <Share2 className="w-7 h-7" />
+            {/* Header Icon */}
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-[#1B7A6E] to-[#E8B923] flex items-center justify-center text-[#0B1230] mb-3 shadow-lg">
+              <NemaliIcon className="w-8 h-8" />
             </div>
 
             <h3 className="text-2xl font-serif font-bold text-[#F6EEDD]">
-              Sacred Fortified Clay!
+              Sacred Terracotta Fortified!
             </h3>
-            <p className="text-xs sm:text-sm text-[#F6EEDD]/80 mt-2 leading-relaxed">
-              This auspicious pot is sanctified and fortified. Share with your friends & family on social media to soften the sacred clay and unlock the final shattering strike!
+            <p className="text-xs sm:text-sm text-[#F6EEDD]/80 mt-1 leading-relaxed">
+              You reached 3 taps (10%). Now share on WhatsApp and Instagram to soften the sacred clay and unlock 100% shattering power!
             </p>
 
-            {/* Current Strength Power Bar */}
-            <div className="my-5 p-3 rounded-xl bg-[#0B1230] border border-[#E8B923]/25">
-              <div className="flex justify-between text-xs text-[#E8B923] font-semibold mb-1">
-                <span>Clay Softening Progress</span>
-                <span>{sharePowerPercentage}% Ready</span>
+            {/* Current Power Progress */}
+            <div className="my-4 p-4 rounded-2xl bg-[#080E24] border border-[#E8B923]/30">
+              <div className="flex justify-between text-xs text-[#E8B923] font-bold mb-1.5">
+                <span>Power Progress: {progressState.percent}%</span>
+                <span>{sharesCount} Shares Logged</span>
               </div>
-              <div className="w-full h-2.5 bg-[#14224A] rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-[#14224A] rounded-full overflow-hidden p-0.5">
                 <div
-                  className="h-full bg-gradient-to-r from-[#1B7A6E] via-[#E8B923] to-[#C6296F] transition-all duration-300"
-                  style={{ width: `${sharePowerPercentage}%` }}
+                  className="h-full bg-gradient-to-r from-[#1B7A6E] via-[#C6296F] to-[#E8B923] rounded-full transition-all duration-300"
+                  style={{ width: `${Math.max(progressState.percent, 10)}%` }}
                 />
+              </div>
+
+              {/* Milestones Reference */}
+              <div className="grid grid-cols-5 gap-1 mt-3 text-[10px] text-[#F6EEDD]/70 text-center">
+                <div className={sharesCount >= 30 ? 'text-emerald-400 font-bold' : ''}>
+                  30s &rarr; 20%
+                </div>
+                <div className={sharesCount >= 100 ? 'text-emerald-400 font-bold' : ''}>
+                  100s &rarr; 50%
+                </div>
+                <div className={sharesCount >= 500 ? 'text-emerald-400 font-bold' : ''}>
+                  500s &rarr; 80%
+                </div>
+                <div className={sharesCount >= 1000 ? 'text-emerald-400 font-bold' : ''}>
+                  1000s &rarr; 99%
+                </div>
+                <div className={sharesCount > 1000 ? 'text-[#FFE27A] font-extrabold' : ''}>
+                  &gt;1000s &rarr; 100%
+                </div>
               </div>
             </div>
 
             {shareFeedback && (
-              <p className="text-xs text-emerald-400 font-medium mb-4 animate-pulse">
+              <p className="text-xs text-emerald-300 font-medium mb-3 animate-pulse bg-emerald-950/60 p-2 rounded-xl border border-emerald-500/40">
                 {shareFeedback}
               </p>
             )}
 
-            {/* 1-Click Share Actions */}
+            {/* Direct App Render / Share Buttons */}
             <div className="space-y-2.5">
+              {/* WhatsApp Direct */}
               <button
-                onClick={() => executeShareAction('whatsapp')}
-                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow cursor-pointer transition-all active:scale-95"
+                id="modal-share-whatsapp"
+                onClick={() => handleShareAction('whatsapp')}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-[#0B1230] font-bold text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
               >
-                <Share2 className="w-4 h-4" />
-                <span>Share on WhatsApp (+Huge Power)</span>
+                <WhatsAppIcon className="w-5 h-5 text-[#0B1230]" />
+                <span>Share to WhatsApp (+15 Shares & Weakens Clay)</span>
               </button>
 
+              {/* Instagram Direct */}
               <button
-                onClick={() => executeShareAction('telegram')}
-                className="w-full py-3 px-4 rounded-xl bg-[#2AABEE] hover:bg-[#229ED9] text-white font-bold text-sm flex items-center justify-center gap-2 shadow cursor-pointer transition-all active:scale-95"
+                id="modal-share-instagram"
+                onClick={() => handleShareAction('instagram')}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95"
               >
-                <Send className="w-4 h-4" />
-                <span>Share on Telegram</span>
+                <InstagramIcon className="w-5 h-5 text-white" />
+                <span>Share to Instagram (+20 Shares & Copies Caption)</span>
               </button>
 
+              {/* Fast Booster Milestones */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  onClick={() => handleShareAction('boost30')}
+                  className="py-2 px-3 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>+30 Shares (20%)</span>
+                </button>
+                <button
+                  onClick={() => handleShareAction('boost100')}
+                  className="py-2 px-3 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>+100 Shares (50%)</span>
+                </button>
+                <button
+                  onClick={() => handleShareAction('boost500')}
+                  className="py-2 px-3 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>+500 Shares (80%)</span>
+                </button>
+                <button
+                  onClick={() => handleShareAction('boost1000')}
+                  className="py-2 px-3 rounded-xl bg-gradient-to-r from-[#E8B923] to-[#FFE27A] text-[#0B1230] text-xs font-black flex items-center justify-center gap-1 cursor-pointer shadow"
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>+1000 Mega Unlock!</span>
+                </button>
+              </div>
+
+              {/* Copy Share Link */}
               <button
-                onClick={() => executeShareAction('copy')}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#0B1230] border border-[#E8B923]/40 text-[#E8B923] font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#14224A] cursor-pointer transition-all"
+                onClick={() => handleShareAction('copy')}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#080E24] border border-[#E8B923]/40 text-[#E8B923] font-semibold text-xs flex items-center justify-center gap-2 hover:bg-[#14224A] cursor-pointer transition-all"
               >
                 {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'Link Copied!' : 'Copy Share Link'}</span>
-              </button>
-
-              <button
-                onClick={() => executeShareAction('boost')}
-                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#E8B923] to-[#C6296F] text-[#0B1230] font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:brightness-110 cursor-pointer shadow transition-all"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Fast Squad Boost (Auto-Softens Clay)</span>
+                <span>{copied ? 'Link Copied to Clipboard!' : 'Copy Direct Share Link'}</span>
               </button>
             </div>
 
             <button
               onClick={() => setShowShareModal(false)}
-              className="mt-4 text-xs text-[#F6EEDD]/60 hover:text-white transition-colors cursor-pointer"
+              className="mt-4 text-xs text-[#F6EEDD]/70 hover:text-white transition-colors cursor-pointer"
             >
-              Continue Tapping
+              Back to Pot Arena
             </button>
           </div>
         </div>

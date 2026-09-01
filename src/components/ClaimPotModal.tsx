@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DevoteeProfile, PotId } from '../types';
-import { NemaliIcon, PeacockFeatherIcon, FluteMotif } from './SvgMotifs';
-import { Sparkles, User, MapPin, Phone, CheckCircle, Flame, X, ShieldCheck, Trophy, Gift } from 'lucide-react';
+import { NemaliIcon, PeacockFeatherIcon } from './SvgMotifs';
+import { Sparkles, User, CheckCircle, Flame, X, ShieldCheck } from 'lucide-react';
 import { playTempleBell } from '../utils/audio';
 
 interface ClaimPotModalProps {
@@ -20,8 +20,6 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
   soundEnabled,
 }) => {
   const [name, setName] = useState('');
-  const [city, setCity] = useState('');
-  const [phone, setPhone] = useState('');
   const [potType, setPotType] = useState<PotId>(selectedPotId || 'uyyala');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,15 +36,7 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Please enter your sacred devotee name (పేరు నమోదు చేయండి)');
-      return;
-    }
-    if (!city.trim()) {
-      setError('Please enter your city or town (నగరం/గ్రామం నమోదు చేయండి)');
-      return;
-    }
-    if (!phone.trim() || phone.replace(/\D/g, '').length < 10) {
-      setError('Please enter a valid 10-digit WhatsApp/Phone number for prize notifications');
+      setError('Please enter your devotee name (భక్తుడి పేరు నమోదు చేయండి)');
       return;
     }
 
@@ -57,11 +47,8 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
       playTempleBell();
     }
 
-    const cleanPhone = phone.trim();
     const formattedProfile: DevoteeProfile = {
       name: name.trim(),
-      city: city.trim(),
-      phone: cleanPhone,
       potType,
       registeredAt: new Date().toISOString(),
       customPotName: `${name.trim()}'s ${potType === 'uyyala' ? 'Uyyala Kunda' : 'Venna Kunda'}`,
@@ -71,7 +58,7 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
       setIsSubmitting(false);
       onSubmitProfile(formattedProfile);
       onClose();
-    }, 400);
+    }, 350);
   };
 
   const isUyyala = potType === 'uyyala';
@@ -84,7 +71,7 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
       <div
         id="claim-pot-modal-container"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-3xl bg-gradient-to-b from-[#14224A] via-[#0E1738] to-[#080E24] border-2 border-[#E8B923]/60 shadow-[0_0_50px_rgba(232,185,35,0.3)] relative p-6 sm:p-8 overflow-hidden animate-in zoom-in-95 duration-300 my-auto"
+        className="w-full max-w-md rounded-3xl bg-gradient-to-b from-[#14224A] via-[#0E1738] to-[#080E24] border-2 border-[#E8B923]/60 shadow-[0_0_50px_rgba(232,185,35,0.3)] relative p-6 sm:p-8 overflow-hidden animate-in zoom-in-95 duration-300 my-auto"
       >
         {/* Background Ambient Motif */}
         <div className="absolute top-0 right-0 -mr-12 -mt-12 opacity-15 pointer-events-none">
@@ -115,14 +102,14 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
             Claim Your Auspicious Pot
           </h2>
           <p className="font-telugu text-base text-[#E8B923] font-medium mt-0.5">
-            మీ సొంత కుండను నమోదు చేసి పగలగొట్టండి
+            మీ పేరు నమోదు చేసి కుండను పగలగొట్టండి
           </p>
-          <p className="text-xs sm:text-sm text-[#F6EEDD]/80 mt-1 max-w-sm">
-            Enter your devotee details to personalize your earthen matka and register your entries into the 180 Pot Crackers Cash Draw!
+          <p className="text-xs sm:text-sm text-[#F6EEDD]/80 mt-1 max-w-xs">
+            Enter your devotee name to personalize your earthen matka and start cracking!
           </p>
         </div>
 
-        {/* Form */}
+        {/* Form - Only Name requested */}
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {error && (
             <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/50 text-red-200 text-xs font-medium flex items-center gap-2">
@@ -131,82 +118,38 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
             </div>
           )}
 
-          {/* Devotee Full Name */}
+          {/* Devotee Full Name Input */}
           <div>
             <label className="block text-xs font-semibold text-[#E8B923] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-[#E8B923]" />
-              <span>Devotee Full Name (భక్తుడి పేరు) *</span>
+              <span>Devotee Name (భక్తుడి పేరు) *</span>
             </label>
             <div className="relative">
               <input
                 id="input-devotee-name"
                 type="text"
                 required
+                autoFocus
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Sai Krishna Varma"
-                className="w-full px-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-[#F6EEDD] placeholder-[#F6EEDD]/40 text-sm focus:outline-none focus:border-[#E8B923] focus:ring-1 focus:ring-[#E8B923] transition-all"
+                placeholder="Enter your name (e.g. Sai Krishna)"
+                className="w-full px-4 py-3.5 rounded-xl bg-[#080E24] border border-[#E8B923]/40 text-[#F6EEDD] placeholder-[#F6EEDD]/40 text-base focus:outline-none focus:border-[#E8B923] focus:ring-2 focus:ring-[#E8B923]/50 transition-all font-medium"
               />
             </div>
-          </div>
-
-          {/* City / Town */}
-          <div>
-            <label className="block text-xs font-semibold text-[#E8B923] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-[#E8B923]" />
-              <span>City / Town (నగరం / గ్రామం) *</span>
-            </label>
-            <div className="relative">
-              <input
-                id="input-devotee-city"
-                type="text"
-                required
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Hyderabad, Vijayawada, Tirupati, Visakhapatnam..."
-                className="w-full px-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-[#F6EEDD] placeholder-[#F6EEDD]/40 text-sm focus:outline-none focus:border-[#E8B923] focus:ring-1 focus:ring-[#E8B923] transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Phone / WhatsApp Number */}
-          <div>
-            <label className="block text-xs font-semibold text-[#E8B923] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-[#E8B923]" />
-              <span>Phone / WhatsApp (బహుమతి SMS & డ్రా కోసం) *</span>
-            </label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-[#E8B923]/80">
-                +91
-              </span>
-              <input
-                id="input-devotee-phone"
-                type="tel"
-                maxLength={10}
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                placeholder="9876543210"
-                className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-[#F6EEDD] placeholder-[#F6EEDD]/40 text-sm font-mono focus:outline-none focus:border-[#E8B923] focus:ring-1 focus:ring-[#E8B923] transition-all"
-              />
-            </div>
-            <span className="text-[11px] text-[#F6EEDD]/60 mt-1 block">
-              Instant vouchers & Grand Draw ticket IDs will be confirmed to this number.
-            </span>
           </div>
 
           {/* Select Pot Tier (Venna vs Uyyala) */}
-          <div className="pt-2">
+          <div className="pt-1">
             <label className="block text-xs font-semibold text-[#E8B923] uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 text-[#E8B923]" />
-              <span>Choose Your Auspicious Matka Tier</span>
+              <span>Choose Your Matka Tier</span>
             </label>
 
             <div className="grid grid-cols-2 gap-3">
               {/* Venna Kunda Option */}
               <div
                 onClick={() => setPotType('venna')}
-                className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between relative ${
+                className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between relative ${
                   potType === 'venna'
                     ? 'border-[#E8B923] bg-[#080E24] ring-2 ring-[#E8B923]/50'
                     : 'border-[#E8B923]/20 bg-[#0B1230]/70 hover:border-[#E8B923]/40'
@@ -218,7 +161,7 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
                     <span className="text-xs font-mono font-bold text-[#E8B923]">₹5</span>
                   </div>
                   <p className="font-telugu text-[11px] text-[#E8B923]/80 mt-0.5">వెన్న కుండ</p>
-                  <p className="text-[11px] text-[#F6EEDD]/70 mt-1">1x Draw Entry + Instant Gift</p>
+                  <p className="text-[11px] text-[#F6EEDD]/70 mt-1">1x Draw Entry</p>
                 </div>
                 <div className="mt-2 text-right">
                   {potType === 'venna' && <CheckCircle className="w-4 h-4 text-[#E8B923] inline" />}
@@ -228,7 +171,7 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
               {/* Uyyala Kunda Option */}
               <div
                 onClick={() => setPotType('uyyala')}
-                className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between relative ${
+                className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between relative ${
                   potType === 'uyyala'
                     ? 'border-[#C6296F] bg-[#080E24] ring-2 ring-[#C6296F]/50 shadow-[0_0_15px_rgba(198,41,111,0.25)]'
                     : 'border-[#E8B923]/20 bg-[#0B1230]/70 hover:border-[#C6296F]/40'
@@ -243,7 +186,7 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
                     <span className="text-xs font-mono font-bold text-[#E8B923]">₹9</span>
                   </div>
                   <p className="font-telugu text-[11px] text-[#E8B923]/80 mt-0.5">ఉయ్యాల కుండ</p>
-                  <p className="text-[11px] text-[#F6EEDD]/70 mt-1">3x Draw Entries + Grand Hamper</p>
+                  <p className="text-[11px] text-[#F6EEDD]/70 mt-1">3x Draw Entries</p>
                 </div>
                 <div className="mt-2 text-right">
                   {potType === 'uyyala' && <CheckCircle className="w-4 h-4 text-[#C6296F] inline" />}
@@ -253,12 +196,12 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
           </div>
 
           {/* Submit Button */}
-          <div className="pt-4">
+          <div className="pt-3">
             <button
               id="btn-submit-devotee-pot"
               type="submit"
               disabled={isSubmitting}
-              className={`w-full py-4 px-6 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 text-[#0B1230] transition-all shadow-xl cursor-pointer ${
+              className={`w-full py-3.5 px-6 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 text-[#0B1230] transition-all shadow-xl cursor-pointer ${
                 isUyyala
                   ? 'bg-gradient-to-r from-[#E8B923] via-[#FFE27A] to-[#E8B923] hover:brightness-105 active:scale-[0.98]'
                   : 'bg-gradient-to-r from-[#E8B923] to-[#B8860B] hover:brightness-105 active:scale-[0.98]'
@@ -266,15 +209,15 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
             >
               <PeacockFeatherIcon className="w-5 h-6" />
               <span>
-                {isSubmitting ? 'Personalizing Sacred Pot...' : 'Submit & Crack My Own Pot (సమర్పించండి)'}
+                {isSubmitting ? 'Personalizing...' : 'Start Cracking (ప్రారంభించండి)'}
               </span>
             </button>
           </div>
 
           {/* Trust footnote */}
-          <div className="flex items-center justify-center gap-2 pt-2 text-[11px] text-[#F6EEDD]/60">
+          <div className="flex items-center justify-center gap-2 pt-1 text-[11px] text-[#F6EEDD]/60">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>100% Guaranteed Instant Blessing &bull; Direct Draw Confirmation</span>
+            <span>Instant Access &bull; 100% Guaranteed Blessed Prize</span>
           </div>
         </form>
       </div>

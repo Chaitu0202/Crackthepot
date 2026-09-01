@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Share2, Users, Copy, Check, Sparkles, UserPlus, Flame, Gift } from 'lucide-react';
 import { ReferralFriend } from '../types';
-import { RangoliDivider } from './SvgMotifs';
+import { RangoliDivider, WhatsAppIcon, InstagramIcon } from './SvgMotifs';
 
 interface ReferralBoostProps {
   userTickets: string[];
@@ -13,14 +13,14 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
   onAddBonusTicket,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [strength, setStrength] = useState(40); // Initial 40%
+  const [strength, setStrength] = useState(50); // Initial 50%
   const [friends, setFriends] = useState<ReferralFriend[]>([
     { id: '1', name: 'Ravi Teja', avatarColor: '#1B7A6E', boostAdded: 20, timeAgo: '2m ago' },
     { id: '2', name: 'Ananya S.', avatarColor: '#C6296F', boostAdded: 20, timeAgo: '12m ago' },
   ]);
 
   const referralCode = 'KRISHNA-LUCKY-7729';
-  const referralUrl = `https://janmashtami.campaign/pot?ref=${referralCode}`;
+  const referralUrl = `${window.location.origin}/#crack-interactive-arena?ref=${referralCode}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralUrl);
@@ -65,6 +65,14 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
+  const shareOnInstagram = () => {
+    const text = `🦚 Help me crack the Krishna Janmashtami Pot to win the ₹1,000 Grand Cash Prize! Tap here to crack yours & enter the 180 Pot Crackers Draw: ${referralUrl}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+    window.open('https://www.instagram.com/', '_blank');
+  };
+
   return (
     <section
       id="referral-boost-section"
@@ -73,13 +81,13 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
       <div className="text-center mb-10">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1B7A6E]/20 border border-[#1B7A6E]/50 text-[#E8B923] text-xs font-semibold uppercase tracking-wider mb-3">
           <Users className="w-3.5 h-3.5 text-[#1B7A6E]" />
-          <span>Community Crack Synergy</span>
+          <span>WhatsApp & Instagram Synergy</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#F6EEDD]">
-          Referral Boost &bull; <span className="text-[#E8B923]">Strength Meter</span>
+          Social Boost &bull; <span className="text-[#E8B923]">Strength Meter</span>
         </h2>
         <p className="mt-2 text-sm sm:text-base text-[#F6EEDD]/80 max-w-xl mx-auto">
-          Uncracked pot or want more draw entries? Share your link. Every friend who taps gives you{' '}
+          Share your pot link to soften the sacred clay (30s = 20%, 100s = 50%, 500s = 80%, 1000s = 99%). Every friend who joins gives you{' '}
           <span className="text-[#E8B923] font-semibold">+20% Crack Strength</span> and{' '}
           <span className="text-[#C6296F] font-semibold">+1 Free Grand Prize Draw Entry</span>!
         </p>
@@ -117,9 +125,9 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
 
             {/* Milestones */}
             <div className="flex justify-between text-xs text-[#F6EEDD]/60 mt-1 px-1">
-              <span>0% (Start)</span>
-              <span>50% (Butter Leak)</span>
-              <span className="text-[#E8B923] font-semibold">100% (Instant Shatter)</span>
+              <span>10% (3 Taps)</span>
+              <span>50% (100 Shares)</span>
+              <span className="text-[#E8B923] font-semibold">100% (1000+ Shares)</span>
             </div>
 
             {/* Friends who helped live feed */}
@@ -178,7 +186,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
               </h3>
             </div>
             <p className="text-xs sm:text-sm text-[#F6EEDD]/75 mb-4">
-              Share on WhatsApp, Telegram, or Instagram stories. When friends open it, your pot gains crack power instantly!
+              Share on WhatsApp and Instagram stories. When friends open it, your pot gains crack power instantly!
             </p>
 
             {/* Link Box */}
@@ -199,14 +207,24 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
               </button>
             </div>
 
-            {/* Quick Share Triggers */}
+            {/* Quick Share Triggers: WhatsApp & Instagram */}
             <div className="space-y-2.5">
               <button
                 id="btn-share-whatsapp"
                 onClick={shareOnWhatsApp}
                 className="w-full py-3 px-4 rounded-xl bg-[#25D366] text-[#0B1230] font-bold text-sm flex items-center justify-center gap-2 hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow-md"
               >
+                <WhatsAppIcon className="w-4 h-4 text-[#0B1230]" />
                 <span>Share via WhatsApp</span>
+              </button>
+
+              <button
+                id="btn-share-instagram"
+                onClick={shareOnInstagram}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white font-bold text-sm flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-md"
+              >
+                <InstagramIcon className="w-4 h-4 text-white" />
+                <span>Share via Instagram (Copy & Open)</span>
               </button>
 
               <button

@@ -52,8 +52,8 @@ export interface PotCrackerWinner {
 
 export interface DevoteeProfile {
   name: string;
-  city: string;
-  phone: string;
+  city?: string;
+  phone?: string;
   potType: PotId;
   registeredAt?: string;
   customPotName?: string;

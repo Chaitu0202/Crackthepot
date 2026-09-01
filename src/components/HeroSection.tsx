@@ -95,12 +95,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {devoteeProfile ? (
               <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#080E24] border border-emerald-500/50 text-emerald-300 text-xs font-semibold shadow">
                 <UserCheck className="w-4 h-4 text-emerald-400" />
-                <span>Active Devotee: <strong>{devoteeProfile.name}</strong> ({devoteeProfile.city})</span>
+                <span>Active Devotee: <strong>{devoteeProfile.name}</strong></span>
               </div>
             ) : (
               <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#E8B923]/10 border border-[#E8B923]/30 text-[#E8B923] text-xs font-medium">
                 <Flame className="w-3.5 h-3.5 text-[#E8B923]" />
-                <span>Click &lsquo;Crack Your Pot&rsquo; to enter your Name, City & Phone!</span>
+                <span>Click &lsquo;Crack Your Pot&rsquo; to enter your Devotee Name & begin!</span>
               </div>
             )}
 
