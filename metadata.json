@@ -1,0 +1,6 @@
+{
+  "name": "Crack Your Pot — Janmashtami Campaign",
+  "description": "Gamified Krishna Janmashtami lucky-draw campaign featuring 3D pot cracking mechanics, lead capture for personalized pots, instant festive rewards, and the 180 Pot Crackers Grand Cash Draw.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
