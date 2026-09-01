@@ -406,8 +406,8 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
       id="crack-interactive-arena"
       className="w-full max-w-5xl mx-auto rounded-3xl bg-gradient-to-b from-[#0E1838] via-[#0A122C] to-[#060B1E] border-2 border-[#E8B923]/40 p-4 sm:p-8 relative shadow-[0_0_60px_rgba(232,185,35,0.15)]"
     >
-      {/* Devotee Banner */}
-      {devoteeProfile ? (
+      {/* Devotee / Pot Status Banner */}
+      {devoteeProfile?.isPaid && devoteeProfile?.potType === activePot.id ? (
         <div className="mb-4 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-[#1B7A6E]/30 via-[#0B1230] to-[#E8B923]/20 border border-[#E8B923]/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1B7A6E] to-[#E8B923] p-0.5 flex items-center justify-center text-[#0B1230] shadow">
@@ -416,66 +416,47 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm sm:text-base font-bold text-[#F6EEDD]">
-                  {devoteeProfile.name}&rsquo;s Sacred Matka
+                  {devoteeProfile.customPotName || `${isUyyala ? 'Uyyala Kunda' : 'Venna Kunda'}`}
                 </span>
-                {devoteeProfile.isPaid ? (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-semibold flex items-center gap-1">
-                    <Check className="w-3 h-3" />
-                    <span>✓ ₹{devoteeProfile.paidAmount || (isUyyala ? 9 : 5)} Blessed & Active</span>
-                  </span>
-                ) : (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 font-semibold flex items-center gap-1">
-                    <Lock className="w-3 h-3" />
-                    <span>₹{isUyyala ? 9 : 5} Dakshina Pending</span>
-                  </span>
-                )}
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  <span>✓ ₹{devoteeProfile.paidAmount || (isUyyala ? 9 : 5)} Blessed & Active</span>
+                </span>
               </div>
               <p className="text-xs text-[#E8B923]">
-                {isUyyala ? 'Uyyala Kunda (₹9 &bull; 3x Draw Entries)' : 'Venna Kunda (₹5 &bull; 1x Draw Entry)'}
+                {isUyyala ? 'Royal Uyyala Kunda &bull; 3x Grand Draw Tickets (#GPD-2026)' : 'Casual Venna Kunda &bull; 1x Grand Draw Ticket'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            {!devoteeProfile.isPaid && (
-              <button
-                onClick={() => onRequestDakshina(activePot.id)}
-                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#E8B923] to-[#C6296F] text-[#0B1230] text-xs font-bold flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Offer ₹{isUyyala ? 9 : 5} & Unlock</span>
-              </button>
-            )}
-            <button
-              onClick={() => onRequestClaim(activePot.id)}
-              className="px-3 py-1.5 rounded-xl bg-[#14224A] border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold flex items-center gap-1.5 hover:bg-[#1B7A6E]/30 transition-all cursor-pointer"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Edit</span>
-            </button>
+            <span className="text-xs text-emerald-300 font-semibold px-3 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/30 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Ready for Strikes</span>
+            </span>
           </div>
         </div>
       ) : (
-        <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-[#C6296F]/20 via-[#0B1230] to-[#E8B923]/20 border border-[#E8B923]/40 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-[#E8B923]/20 via-[#0B1230] to-[#C6296F]/20 border border-[#E8B923]/40 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-3 text-center sm:text-left">
             <NemaliIcon className="w-8 h-8 shrink-0 text-[#E8B923]" />
             <div>
               <span className="text-xs sm:text-sm font-bold text-[#F6EEDD] block">
-                Submit Devotee Name to Claim Pot
+                Offer ₹{isUyyala ? 9 : 5} to Unlock &amp; Crack {isUyyala ? 'Uyyala Kunda' : 'Venna Kunda'}
               </span>
               <span className="text-[11px] text-[#E8B923]/80">
-                Enter your name to personalize your pot & enter the 180 Pot Crackers Draw!
+                Direct SMEPay UPI &bull; 100% Instant Win Guaranteed + Lucky Draw Ticket
               </span>
             </div>
           </div>
 
           <button
             id="btn-claim-pot-banner"
-            onClick={() => onRequestClaim(activePot.id)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#E8B923] to-[#C6296F] text-[#0B1230] font-bold text-xs flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow cursor-pointer whitespace-nowrap"
+            onClick={() => onRequestDakshina(activePot.id)}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#E8B923] via-[#FFE27A] to-[#E8B923] text-[#0B1230] font-black text-xs sm:text-sm flex items-center gap-1.5 hover:brightness-105 active:scale-95 transition-all shadow-lg cursor-pointer whitespace-nowrap"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Enter Name</span>
+            <Sparkles className="w-4 h-4 text-[#0B1230]" />
+            <span>Pay ₹{isUyyala ? 9 : 5} &amp; Unlock</span>
           </button>
         </div>
       )}

@@ -93,18 +93,16 @@ export default function App() {
     }
   };
 
-  const handleOpenClaimModal = (potId?: PotId) => {
-    if (potId) {
-      setSelectedPotId(potId);
-    }
-    setIsClaimModalOpen(true);
-  };
-
   const handleOpenDakshinaModal = (potId?: PotId) => {
     if (potId) {
       setSelectedPotId(potId);
     }
     setIsDakshinaModalOpen(true);
+  };
+
+  const handleOpenClaimModal = (potId?: PotId) => {
+    // Directly route to Sacred Dakshina Payment modal (no redundant details requested)
+    handleOpenDakshinaModal(potId);
   };
 
   const handleProfileSubmitted = (profile: DevoteeProfile) => {
@@ -124,7 +122,7 @@ export default function App() {
   const handlePaymentSuccess = (amount: number, txnId: string, potType: PotId) => {
     const updatedProfile: DevoteeProfile = {
       ...(devoteeProfile || {
-        name: 'Devotee',
+        name: 'Blessed Devotee',
         potType,
         registeredAt: new Date().toISOString(),
       }),
@@ -133,6 +131,7 @@ export default function App() {
       paymentTxnId: txnId,
       paidAt: new Date().toISOString(),
       potType,
+      customPotName: `${potType === 'uyyala' ? 'Uyyala Kunda' : 'Venna Kunda'} (Blessed)`,
     };
 
     setDevoteeProfile(updatedProfile);
@@ -161,9 +160,7 @@ export default function App() {
 
   const handleStartCrack = (potId: PotConfig['id']) => {
     setSelectedPotId(potId);
-    if (!devoteeProfile) {
-      setIsClaimModalOpen(true);
-    } else if (!devoteeProfile.isPaid || devoteeProfile.potType !== potId) {
+    if (!devoteeProfile || !devoteeProfile.isPaid || devoteeProfile.potType !== potId) {
       setIsDakshinaModalOpen(true);
     } else {
       scrollToSection('crack-interactive-arena');
