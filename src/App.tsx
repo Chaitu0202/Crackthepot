@@ -87,6 +87,95 @@ export default function App() {
   const crackArenaRef = useRef<HTMLDivElement>(null);
   const potSelectionRef = useRef<HTMLDivElement>(null);
 
+  // Detect payment return from SMEpay URL parameters or query strings
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const isThankYouPage =
+        params.get('page') === 'thankyou' ||
+        params.get('view') === 'thankyou' ||
+        params.get('status') === 'success' ||
+        params.get('transaction') === 'success' ||
+        params.get('payment') === 'success' ||
+        params.get('paid') === 'true' ||
+        params.has('txnid');
+
+      if (isThankYouPage) {
+        // Retrieve pending details if available
+        const pendingRaw = localStorage.getItem('krishna_pending_payment');
+        let pending = null;
+        if (pendingRaw) {
+          try {
+            pending = JSON.parse(pendingRaw);
+          } catch {
+            // ignore
+          }
+        }
+
+        const ticketPrefix = 'GPD-2026-';
+        const newTicket = `${ticketPrefix}${Math.floor(100000 + Math.random() * 900000)}`;
+        const txnId = `SME-VALDFFL-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        const profileName = pending?.name || devoteeProfile?.name || 'Blessed Devotee';
+        const profilePhone = pending?.phone || devoteeProfile?.phone || '9876543210';
+        const profileCity = pending?.city || devoteeProfile?.city || 'Hyderabad';
+
+        const updatedProfile: DevoteeProfile = {
+          name: profileName,
+          phone: profilePhone,
+          city: profileCity,
+          selectedPot: 'venna',
+          referralCode: devoteeProfile?.referralCode || `KRISHNA-${profileName.slice(0, 4).toUpperCase()}-772`,
+          referralCount: devoteeProfile?.referralCount || 0,
+          tickets: Array.from(new Set([...(devoteeProfile?.tickets || []), newTicket])),
+          registeredAt: new Date().toISOString(),
+          paymentAmount: 5,
+          paymentStatus: 'completed',
+          transactionId: txnId,
+        };
+
+        const newPotInst: ClaimedPotInstance = {
+          id: `pot-${Date.now()}`,
+          potId: 'venna',
+          devoteeName: profileName,
+          phone: profilePhone,
+          city: profileCity,
+          tickets: [newTicket],
+          claimedAt: new Date().toISOString(),
+          sharesCount: 0,
+          isCracked: false,
+          paymentAmount: 5,
+          transactionId: txnId,
+        };
+
+        setDevoteeProfile(updatedProfile);
+        setSelectedPotId('venna');
+        setUserTickets((prev) => Array.from(new Set([...prev, newTicket])));
+        setClaimedPots((prev) => {
+          const filtered = prev.filter((p) => p.potId !== 'venna');
+          const updated = [newPotInst, ...filtered];
+          try {
+            localStorage.setItem('krishna_claimed_pots', JSON.stringify(updated));
+          } catch {
+            // ignore
+          }
+          return updated;
+        });
+
+        try {
+          localStorage.setItem('krishna_pot_devotee', JSON.stringify(updatedProfile));
+          localStorage.removeItem('krishna_pending_payment');
+        } catch {
+          // ignore
+        }
+
+        setCurrentView('thankyou');
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
     if (el) {

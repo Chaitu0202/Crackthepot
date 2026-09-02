@@ -229,9 +229,15 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
           </p>
 
           <div className="flex items-center justify-center gap-2 my-2.5">
-            <span className="px-3.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black tracking-wider uppercase">
-              100% Free Celebration
-            </span>
+            {pot.price > 0 ? (
+              <span className="px-3.5 py-1 rounded-full bg-[#E8B923]/25 text-[#FFE27A] border border-[#E8B923]/50 text-xs font-black tracking-wider uppercase">
+                ₹{pot.price} Sacred Offering
+              </span>
+            ) : (
+              <span className="px-3.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black tracking-wider uppercase">
+                100% Free Celebration
+              </span>
+            )}
             <span className="text-xs text-[#F6EEDD]/75 font-medium">
               &bull; {pot.drawEntries}x Grand Draw {pot.drawEntries > 1 ? 'Entries' : 'Entry'}
             </span>
@@ -268,7 +274,11 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
                 : 'bg-gradient-to-r from-[#E8B923] via-[#FFE27A] to-[#E8B923] text-[#0B1230] hover:brightness-105 active:scale-[0.98]'
             }`}
           >
-            <span>Crack {isUyyala ? 'Uyyala Kunda' : 'Venna Kunda'} (Free)</span>
+            <span>
+              {isUyyala
+                ? 'Crack Uyyala Kunda (Free)'
+                : 'Pay ₹5 & Crack Venna Kunda'}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

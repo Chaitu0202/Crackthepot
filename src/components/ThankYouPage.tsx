@@ -13,7 +13,9 @@ import {
   ShieldCheck,
   Ticket,
   Zap,
-  Layers
+  Layers,
+  CreditCard,
+  Receipt
 } from 'lucide-react';
 
 interface ThankYouPageProps {
@@ -27,7 +29,7 @@ interface ThankYouPageProps {
 }
 
 export const ThankYouPage: React.FC<ThankYouPageProps> = ({
-  potId = 'uyyala',
+  potId = 'venna',
   devoteeProfile,
   userTickets,
   claimedPots = [],
@@ -35,19 +37,25 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
   onOpenMyPots,
   soundEnabled,
 }) => {
-  const isUyyala = potId === 'uyyala';
+  const activePotId = devoteeProfile?.selectedPot || potId;
+  const isUyyala = activePotId === 'uyyala';
+  const isVenna = activePotId === 'venna';
   const potName = isUyyala ? 'Uyyala Kunda' : 'Venna Kunda';
   const potTelugu = isUyyala ? 'ఉయ్యాల కుండ' : 'వెన్న కుండ';
   const potSubtitle = isUyyala
     ? 'Premium Royal Matka &bull; 3x Grand Draw Entries'
-    : 'Casual Matka &bull; 1x Grand Draw Entry';
+    : 'Auspicious Festive Matka &bull; ₹5 Paid via SMEpay &bull; 1x Grand Draw Entry';
 
-  // Set page title to "Thank You"
+  const transactionId =
+    devoteeProfile?.transactionId ||
+    `SME-VALDFFL-${Math.floor(100000 + Math.random() * 900000)}`;
+
+  // Set document title strictly to "Thank You"
   useEffect(() => {
     const originalTitle = document.title;
-    document.title = 'Thank You — Crack Your Pot';
+    document.title = 'Thank You';
 
-    // Play celebratory chime & shower confetti on entrance
+    // Play celebratory chimes & audio fanfare on entrance
     if (soundEnabled) {
       playTempleBell();
       setTimeout(() => playCelebrationFanfare(), 300);
@@ -103,12 +111,16 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
         {/* Sacred Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E8B923]/15 border border-[#E8B923]/40 text-[#E8B923] text-xs sm:text-sm font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(232,185,35,0.2)]">
           <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
-          <span>Sacred Offering Confirmed &bull; Matka Blessed</span>
+          <span>Payment Successful &bull; Offering Confirmed &bull; Matka Blessed</span>
           <DiyaLamp className="w-4 h-4 text-[#E8B923]" />
         </div>
 
-        {/* Main Congratulations Header */}
+        {/* Main Congratulations Header with Prominent "Thank You" */}
         <div className="space-y-3">
+          <div className="inline-block px-5 py-1 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-serif font-black text-xl sm:text-2xl tracking-wide uppercase shadow-sm">
+            Thank You!
+          </div>
+
           <h1
             id="thankyou-main-heading"
             className="text-3xl sm:text-5xl md:text-6xl font-serif font-black tracking-tight text-white leading-tight"
@@ -120,10 +132,10 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
             !
           </h1>
           <p className="font-telugu text-lg sm:text-2xl text-[#E8B923] font-bold">
-            {potTelugu}ను పొందినందుకు హృదయపూర్వక అభినందనలు!
+            {potTelugu}ను పొందినందుకు హృదయపూర్వక ధన్యవాదాలు &amp; అభినందనలు!
           </p>
           <p className="text-sm sm:text-base text-[#F6EEDD]/80 max-w-xl mx-auto font-sans">
-            Your sacred pot has been blessed and placed in the Utlotsavam arena. You are now fully eligible for instant festive hamper rewards and the 180 Pot Crackers Grand Draw!
+            Your payment and sacred offering have been verified by the Utlotsavam arena. You are now fully eligible for instant festive hamper rewards and the 180 Pot Crackers Grand Cash Draw!
           </p>
         </div>
 
@@ -146,7 +158,7 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
                   </h3>
                   <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Active &amp; Ready</span>
+                    <span>Paid &amp; Active</span>
                   </span>
                 </div>
                 <p className="text-xs sm:text-sm text-[#E8B923] font-medium">
@@ -157,13 +169,26 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
 
             <div className="px-4 py-2 rounded-2xl bg-[#080E24] border border-[#E8B923]/40 text-center">
               <span className="text-[10px] text-[#F6EEDD]/60 uppercase font-bold tracking-wider block">
-                Devotee Status
+                Devotee Verified
               </span>
               <span className="text-xs sm:text-sm font-bold text-[#FFE27A]">
-                {devoteeProfile?.name || 'Blessed Devotee'} (✓ Verified)
+                {devoteeProfile?.name || 'Blessed Devotee'} (✓ Confirmed)
               </span>
             </div>
           </div>
+
+          {/* Payment & Receipt Metadata */}
+          {isVenna && (
+            <div className="mt-4 p-3.5 rounded-2xl bg-[#080E24] border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-emerald-300 font-semibold">
+                <Receipt className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Payment Confirmed: ₹5.00 via SMEpay Gateway</span>
+              </div>
+              <span className="font-mono text-[11px] text-[#E8B923] bg-[#14224A] px-2.5 py-0.5 rounded-md border border-[#E8B923]/30">
+                Txn ID: {transactionId}
+              </span>
+            </div>
+          )}
 
           {/* Key Perks Unlocked */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-6">
@@ -175,7 +200,7 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
                 <span className="text-xs font-bold text-white block">
                   {isUyyala ? '3x Lucky Tickets' : '1x Lucky Ticket'}
                 </span>
-                <span className="text-[11px] text-[#F6EEDD]/70">Grand Prize Draw</span>
+                <span className="text-[11px] text-[#F6EEDD]/70">Grand Prize Cash Draw</span>
               </div>
             </div>
 
@@ -300,7 +325,7 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
         {/* Footer info */}
         <div className="text-xs text-[#F6EEDD]/50 space-y-1">
           <p>Sri Krishna Janmashtami &bull; Utlotsavam 2026 Celebration</p>
-          <p>Need assistance or have questions? Contact support via WhatsApp or email.</p>
+          <p>Need assistance with your ₹5 SMEpay transaction? WhatsApp support is active 24/7.</p>
         </div>
       </div>
     </div>

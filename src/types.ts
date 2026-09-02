@@ -5,6 +5,9 @@ export interface PotTier {
   name: string;
   nameTelugu: string;
   badge: string;
+  price: number;
+  priceLabel: string;
+  paymentUrl?: string;
   description: string;
   descriptionTelugu: string;
   drawEntries: number;
@@ -24,6 +27,9 @@ export interface DevoteeProfile {
   claimedReward?: InstantReward;
   tickets: string[];
   registeredAt: string;
+  paymentAmount?: number;
+  paymentStatus?: 'completed' | 'free' | 'pending';
+  transactionId?: string;
 }
 
 export interface ClaimedPotInstance {
@@ -37,6 +43,8 @@ export interface ClaimedPotInstance {
   sharesCount: number;
   isCracked: boolean;
   wonReward?: InstantReward;
+  paymentAmount?: number;
+  transactionId?: string;
 }
 
 export interface InstantReward {
@@ -76,7 +84,10 @@ export const POT_TIERS: Record<PotId, PotTier> = {
     id: 'venna',
     name: 'Venna Kunda (వెన్న కుండ)',
     nameTelugu: 'వెన్న కుండ',
-    badge: 'Auspicious Casual Pot',
+    badge: 'Auspicious Festive Pot • ₹5 Offering',
+    price: 5,
+    priceLabel: '₹5',
+    paymentUrl: 'https://page.smepay.in/@crackthepot/transaction/valdffl',
     description: 'Crisp terracotta filled with fresh festive Makhan, butter cookies & lucky draw entry.',
     descriptionTelugu: 'శ్రీకృష్ణుడి వెన్న కుండ &bull; తక్షణ గిఫ్ట్ వోచర్లు & లక్కీ డ్రా ఎంట్రీ',
     drawEntries: 1,
@@ -94,6 +105,8 @@ export const POT_TIERS: Record<PotId, PotTier> = {
     name: 'Uyyala Kunda (ఉయ్యాల కుండ)',
     nameTelugu: 'ఉయ్యాల కుండ',
     badge: 'Royal Devotee Pot • High Odds',
+    price: 0,
+    priceLabel: 'Free',
     description: 'Swinging silk-rope matka packed with royal sweets, silver keepsakes & 3x grand tickets.',
     descriptionTelugu: 'ఉయ్యాల కుండ &bull; 3 రెట్లు లక్కీ డ్రా ఎంట్రీలు & గరిష్ట రివార్డులు',
     drawEntries: 3,

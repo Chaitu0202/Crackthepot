@@ -14,7 +14,10 @@ import {
   Gift,
   Flame,
   Ticket,
-  Check
+  Check,
+  CreditCard,
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 
 interface ClaimPotModalProps {
@@ -39,26 +42,17 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
   const [city, setCity] = useState('Hyderabad');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<'form' | 'awaiting_payment'>('form');
 
   if (!isOpen) return null;
 
   const currentTier = POT_TIERS[selectedPot];
   const isUyyala = selectedPot === 'uyyala';
+  const isVenna = selectedPot === 'venna';
+  const vennaPaymentUrl = POT_TIERS.venna.paymentUrl || 'https://page.smepay.in/@crackthepot/transaction/valdffl';
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      setError('Please enter your full name / భక్తుడి పేరును నమోదు చేయండి');
-      return;
-    }
-    if (!phone.trim() || phone.replace(/\D/g, '').length < 10) {
-      setError('Please enter a valid 10-digit mobile number for prize & draw alerts');
-      return;
-    }
-
+  const handleCompleteRegistration = (isPaid: boolean) => {
     setIsSubmitting(true);
-    setError('');
-
     if (soundEnabled) {
       playTempleBell();
     }
@@ -77,6 +71,7 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
 
     const cleanName = name.trim().split(' ')[0].toUpperCase();
     const refCode = `KRISHNA-${cleanName.slice(0, 4)}-${Math.floor(100 + Math.random() * 900)}`;
+    const txnId = isPaid ? `SME-VALDFFL-${Math.floor(100000 + Math.random() * 900000)}` : undefined;
 
     const newProfile: DevoteeProfile = {
       name: name.trim(),
@@ -87,6 +82,9 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
       referralCount: 0,
       tickets: initialTickets,
       registeredAt: new Date().toISOString(),
+      paymentAmount: isVenna ? 5 : 0,
+      paymentStatus: isVenna ? 'completed' : 'free',
+      transactionId: txnId,
     };
 
     const newPotInstance: ClaimedPotInstance = {
@@ -99,6 +97,8 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
       claimedAt: new Date().toISOString(),
       sharesCount: 0,
       isCracked: false,
+      paymentAmount: isVenna ? 5 : 0,
+      transactionId: txnId,
     };
 
     setTimeout(() => {
@@ -107,8 +107,50 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
         setTimeout(() => playCelebrationFanfare(), 250);
       }
       setIsSubmitting(false);
+      setPaymentStep('form');
       onProfileCreated(newProfile, newPotInstance);
     }, 450);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setError('Please enter your full name / భక్తుడి పేరును నమోదు చేయండి');
+      return;
+    }
+    if (!phone.trim() || phone.replace(/\D/g, '').length < 10) {
+      setError('Please enter a valid 10-digit mobile number for prize & draw alerts');
+      return;
+    }
+
+    setError('');
+
+    // If Venna Kunda (₹5), trigger payment flow
+    if (isVenna) {
+      // Save details to pending storage
+      try {
+        localStorage.setItem(
+          'krishna_pending_payment',
+          JSON.stringify({
+            name: name.trim(),
+            phone: phone.trim(),
+            city: city.trim() || 'Hyderabad',
+            selectedPot: 'venna',
+            amount: 5,
+            timestamp: Date.now(),
+          })
+        );
+      } catch {
+        // ignore
+      }
+
+      // Open SMEpay payment link in new window/tab
+      window.open(vennaPaymentUrl, '_blank', 'noopener,noreferrer');
+      setPaymentStep('awaiting_payment');
+    } else {
+      // Free Uyyala Pot
+      handleCompleteRegistration(false);
+    }
   };
 
   return (
@@ -139,7 +181,7 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
         <div className="text-center relative z-10 mb-5 shrink-0">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#E8B923]/15 border border-[#E8B923]/40 text-[#E8B923] text-xs font-bold uppercase tracking-wider mb-2">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Devotee Registration &bull; 100% Free Auspicious Offering</span>
+            <span>Devotee Registration &bull; Sri Krishna Janmashtami 2026</span>
             <DiyaLamp className="w-3.5 h-3.5 text-[#E8B923]" />
           </div>
 
@@ -151,213 +193,305 @@ export const ClaimPotModal: React.FC<ClaimPotModalProps> = ({
           </p>
         </div>
 
-        <div className="overflow-y-auto pr-1 space-y-5 custom-scrollbar flex-1 relative z-10">
-          {/* BOTH KUNDA VARIANTS DETAILS (Rich Side-by-Side Comparison) */}
-          <div>
-            <label className="block text-xs font-bold text-[#E8B923] uppercase tracking-wider mb-2">
-              Select Your Auspicious Variant / కుండ రకాన్ని ఎంచుకోండి:
-            </label>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {/* Variant 1: Venna Kunda */}
-              <div
-                onClick={() => onSelectPotChange('venna')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
-                  selectedPot === 'venna'
-                    ? 'bg-gradient-to-b from-[#14224A] to-[#0A122C] border-2 border-[#E8B923] ring-1 ring-[#E8B923] shadow-[0_0_25px_rgba(232,185,35,0.35)]'
-                    : 'bg-[#080E24]/80 border-[#E8B923]/25 hover:border-[#E8B923]/60 opacity-85'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#E8B923]/20 text-[#E8B923] border border-[#E8B923]/40 uppercase tracking-wide">
-                      Casual Pot &bull; 1x Ticket
-                    </span>
-                    {selectedPot === 'venna' && (
-                      <CheckCircle2 className="w-4 h-4 text-[#E8B923]" />
-                    )}
-                  </div>
-
-                  <h4 className="text-lg font-serif font-bold text-white">
-                    Venna Kunda (వెన్న కుండ)
-                  </h4>
-                  <p className="text-xs text-[#E8B923] font-medium font-telugu mt-0.5">
-                    శ్రీకృష్ణుడి వెన్న కుండ
-                  </p>
-                  <p className="text-[11px] text-[#F6EEDD]/75 mt-1.5 leading-relaxed">
-                    Crisp terracotta filled with fresh festive Makhan, butter cookies &amp; lucky draw entry.
-                  </p>
-
-                  <div className="mt-3 pt-2.5 border-t border-[#E8B923]/20 space-y-1.5">
-                    {POT_TIERS.venna.perks.slice(0, 3).map((perk, idx) => (
-                      <div key={idx} className="flex items-start gap-1.5 text-[11px] text-[#F6EEDD]/80">
-                        <Check className="w-3 h-3 text-[#E8B923] shrink-0 mt-0.5" />
-                        <span>{perk}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-2">
-                  <span className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-colors ${
-                    selectedPot === 'venna'
-                      ? 'bg-[#E8B923] text-[#0B1230]'
-                      : 'bg-[#14224A] text-[#F6EEDD]/80 border border-[#E8B923]/30'
-                  }`}>
-                    {selectedPot === 'venna' ? '✓ Selected' : 'Choose Venna Kunda'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Variant 2: Uyyala Kunda */}
-              <div
-                onClick={() => onSelectPotChange('uyyala')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
-                  selectedPot === 'uyyala'
-                    ? 'bg-gradient-to-b from-[#221238] via-[#1A143A] to-[#0A122C] border-2 border-[#C6296F] ring-1 ring-[#C6296F] shadow-[0_0_30px_rgba(198,41,111,0.45)]'
-                    : 'bg-[#080E24]/80 border-[#E8B923]/25 hover:border-[#C6296F]/60 opacity-85'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gradient-to-r from-[#C6296F] to-[#E8B923] text-white uppercase tracking-wide flex items-center gap-1 shadow">
-                      <Sparkles className="w-2.5 h-2.5 text-white" />
-                      Royal Devotee &bull; 3x Tickets
-                    </span>
-                    {selectedPot === 'uyyala' && (
-                      <CheckCircle2 className="w-4 h-4 text-[#C6296F]" />
-                    )}
-                  </div>
-
-                  <h4 className="text-lg font-serif font-bold text-white">
-                    Uyyala Kunda (ఉయ్యాల కుండ)
-                  </h4>
-                  <p className="text-xs text-[#FFE27A] font-medium font-telugu mt-0.5">
-                    ఉయ్యాల కుండ &bull; గరిష్ట రివార్డులు
-                  </p>
-                  <p className="text-[11px] text-[#F6EEDD]/75 mt-1.5 leading-relaxed">
-                    Swinging silk-rope matka packed with royal sweets, silver keepsakes &amp; 3x grand tickets.
-                  </p>
-
-                  <div className="mt-3 pt-2.5 border-t border-[#C6296F]/30 space-y-1.5">
-                    {POT_TIERS.uyyala.perks.slice(0, 3).map((perk, idx) => (
-                      <div key={idx} className="flex items-start gap-1.5 text-[11px] text-[#F6EEDD]/80">
-                        <Check className="w-3 h-3 text-[#FFE27A] shrink-0 mt-0.5" />
-                        <span>{perk}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-2">
-                  <span className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-colors ${
-                    selectedPot === 'uyyala'
-                      ? 'bg-gradient-to-r from-[#C6296F] via-[#E8B923] to-[#C6296F] text-white shadow'
-                      : 'bg-[#14224A] text-[#F6EEDD]/80 border border-[#E8B923]/30'
-                  }`}>
-                    {selectedPot === 'uyyala' ? '✓ Selected' : 'Choose Uyyala Kunda'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Devotee Details Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-rose-400 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-bold text-[#E8B923] uppercase tracking-wider mb-1">
-                Devotee Full Name / భక్తుడి పేరు *
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#E8B923]/60" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Sai Krishna Varma"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-sm text-white placeholder-[#F6EEDD]/30 focus:outline-none focus:border-[#E8B923] transition-colors"
-                />
-              </div>
+        {paymentStep === 'awaiting_payment' ? (
+          /* AWAITING PAYMENT STEP FOR VENNA KUNDA (₹5) */
+          <div className="overflow-y-auto pr-1 space-y-6 flex-1 relative z-10 text-center py-4 animate-in fade-in duration-300">
+            <div className="w-16 h-16 rounded-2xl bg-[#E8B923]/20 border border-[#E8B923] text-[#E8B923] flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(232,185,35,0.3)]">
+              <CreditCard className="w-8 h-8 animate-pulse" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-[#E8B923] uppercase tracking-wider mb-1">
-                  WhatsApp / Mobile No. *
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#E8B923]/60" />
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. 9876543210"
-                    maxLength={10}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-sm text-white placeholder-[#F6EEDD]/30 focus:outline-none focus:border-[#E8B923] transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#E8B923] uppercase tracking-wider mb-1">
-                  City / పట్టణం
-                </label>
-                <div className="relative">
-                  <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#E8B923]/60" />
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g. Hyderabad / Vijayawada"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-sm text-white placeholder-[#F6EEDD]/30 focus:outline-none focus:border-[#E8B923] transition-colors"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Perks Highlight Box */}
-            <div className="p-3.5 rounded-2xl bg-[#080E24]/90 border border-[#E8B923]/25 text-xs space-y-1.5">
-              <div className="flex items-center justify-between text-[#FFE27A] font-bold">
-                <span>Selected: {currentTier.name}</span>
-                <span>{isUyyala ? '3x Tickets' : '1x Ticket'} Included</span>
-              </div>
-              <p className="text-[11px] text-[#F6EEDD]/70">
-                ✓ Free instant crack access &bull; Guaranteed festive discount voucher &bull; Entry into 180 Cash Winners Grand Draw on 10th September!
+            <div className="space-y-2">
+              <span className="text-xs px-3 py-1 rounded-full bg-[#E8B923]/20 text-[#FFE27A] border border-[#E8B923]/40 font-bold uppercase tracking-wider">
+                SMEpay Gateway &bull; ₹5 Offering
+              </span>
+              <h3 className="text-xl sm:text-2xl font-serif font-bold text-white">
+                Complete Your ₹5 Offering for Venna Kunda
+              </h3>
+              <p className="text-xs sm:text-sm text-[#F6EEDD]/80 max-w-md mx-auto">
+                We opened the official SMEpay gateway in a new tab. After making your ₹5 payment, click below to automatically render your <strong>Thank You</strong> page &amp; receive your Grand Draw ticket!
               </p>
             </div>
 
-            {/* Submit Button */}
-            <button
-              id="btn-confirm-claim-pot"
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#E8B923] via-[#FFE27A] to-[#E8B923] text-[#0B1230] font-black text-base sm:text-lg flex items-center justify-center gap-2 shadow-[0_0_35px_rgba(232,185,35,0.4)] hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
-            >
-              {isSubmitting ? (
-                <>
-                  <Sparkles className="w-5 h-5 animate-spin" />
-                  <span>Blessing &amp; Claiming Pot...</span>
-                </>
-              ) : (
-                <>
-                  <span>Claim {selectedPot === 'uyyala' ? 'Uyyala Kunda' : 'Venna Kunda'} &bull; Start Cracking 🏺</span>
-                  <ArrowRight className="w-5 h-5" />
-                </>
+            <div className="p-4 rounded-2xl bg-[#080E24] border border-[#E8B923]/30 max-w-md mx-auto text-left space-y-2 text-xs">
+              <div className="flex justify-between text-[#F6EEDD]/75">
+                <span>Devotee Name:</span>
+                <span className="font-bold text-white">{name}</span>
+              </div>
+              <div className="flex justify-between text-[#F6EEDD]/75">
+                <span>Mobile Number:</span>
+                <span className="font-bold text-white">{phone}</span>
+              </div>
+              <div className="flex justify-between text-[#F6EEDD]/75">
+                <span>Pot Selected:</span>
+                <span className="font-bold text-[#FFE27A]">Venna Kunda (వెన్న కుండ)</span>
+              </div>
+              <div className="flex justify-between text-[#F6EEDD]/75 pt-2 border-t border-[#E8B923]/20">
+                <span className="font-bold text-white">Sacred Offering Amount:</span>
+                <span className="font-black text-[#E8B923] text-sm">₹5.00</span>
+              </div>
+            </div>
+
+            <div className="space-y-3 max-w-md mx-auto">
+              <button
+                id="btn-confirm-successful-transaction"
+                onClick={() => handleCompleteRegistration(true)}
+                disabled={isSubmitting}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 via-[#E8B923] to-emerald-500 text-[#0B1230] font-black text-base flex items-center justify-center gap-2 shadow-[0_0_35px_rgba(16,185,129,0.4)] hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Verifying Transaction &amp; Rendering Thank You Page...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 text-[#0B1230]" />
+                    <span>I Have Completed Payment &bull; Render Thank You Page 🏺</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-center gap-4 text-xs">
+                <a
+                  href={vennaPaymentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#E8B923] hover:underline flex items-center gap-1 font-semibold"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Reopen SMEpay Gateway Link</span>
+                </a>
+                <span className="text-[#F6EEDD]/30">&bull;</span>
+                <button
+                  type="button"
+                  onClick={() => setPaymentStep('form')}
+                  className="text-[#F6EEDD]/60 hover:text-white underline cursor-pointer"
+                >
+                  Edit Details
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* STANDARD REGISTRATION FORM STEP */
+          <div className="overflow-y-auto pr-1 space-y-5 custom-scrollbar flex-1 relative z-10">
+            {/* BOTH KUNDA VARIANTS DETAILS */}
+            <div>
+              <label className="block text-xs font-bold text-[#E8B923] uppercase tracking-wider mb-2">
+                Select Your Auspicious Variant / కుండ రకాన్ని ఎంచుకోండి:
+              </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {/* Variant 1: Venna Kunda (₹5 Offering) */}
+                <div
+                  onClick={() => onSelectPotChange('venna')}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
+                    selectedPot === 'venna'
+                      ? 'bg-gradient-to-b from-[#14224A] to-[#0A122C] border-2 border-[#E8B923] ring-1 ring-[#E8B923] shadow-[0_0_25px_rgba(232,185,35,0.35)]'
+                      : 'bg-[#080E24]/80 border-[#E8B923]/25 hover:border-[#E8B923]/60 opacity-85'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#E8B923]/25 text-[#FFE27A] border border-[#E8B923]/50 uppercase tracking-wide">
+                        ₹5 Offering &bull; 1x Ticket
+                      </span>
+                      {selectedPot === 'venna' && (
+                        <CheckCircle2 className="w-4 h-4 text-[#E8B923]" />
+                      )}
+                    </div>
+
+                    <h4 className="text-lg font-serif font-bold text-white flex items-center justify-between">
+                      <span>Venna Kunda (వెన్న కుండ)</span>
+                      <span className="text-[#E8B923] font-sans font-black text-sm">₹5</span>
+                    </h4>
+                    <p className="text-xs text-[#E8B923] font-medium font-telugu mt-0.5">
+                      శ్రీకృష్ణుడి వెన్న కుండ &bull; రూ. 5 సమర్పణ
+                    </p>
+                    <p className="text-[11px] text-[#F6EEDD]/75 mt-1.5 leading-relaxed">
+                      Crisp terracotta filled with fresh festive Makhan, butter cookies &amp; lucky draw entry.
+                    </p>
+
+                    <div className="mt-3 pt-2.5 border-t border-[#E8B923]/20 space-y-1.5">
+                      {POT_TIERS.venna.perks.slice(0, 3).map((perk, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5 text-[11px] text-[#F6EEDD]/80">
+                          <Check className="w-3 h-3 text-[#E8B923] shrink-0 mt-0.5" />
+                          <span>{perk}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2">
+                    <span className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-colors ${
+                      selectedPot === 'venna'
+                        ? 'bg-[#E8B923] text-[#0B1230]'
+                        : 'bg-[#14224A] text-[#F6EEDD]/80 border border-[#E8B923]/30'
+                    }`}>
+                      {selectedPot === 'venna' ? '✓ Selected (₹5)' : 'Choose Venna Kunda (₹5)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Variant 2: Uyyala Kunda (Free) */}
+                <div
+                  onClick={() => onSelectPotChange('uyyala')}
+                  className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
+                    selectedPot === 'uyyala'
+                      ? 'bg-gradient-to-b from-[#221238] via-[#1A143A] to-[#0A122C] border-2 border-[#C6296F] ring-1 ring-[#C6296F] shadow-[0_0_30px_rgba(198,41,111,0.45)]'
+                      : 'bg-[#080E24]/80 border-[#E8B923]/25 hover:border-[#C6296F]/60 opacity-85'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-gradient-to-r from-[#C6296F] to-[#E8B923] text-white uppercase tracking-wide flex items-center gap-1 shadow">
+                        <Sparkles className="w-2.5 h-2.5 text-white" />
+                        Free &bull; 3x Tickets
+                      </span>
+                      {selectedPot === 'uyyala' && (
+                        <CheckCircle2 className="w-4 h-4 text-[#C6296F]" />
+                      )}
+                    </div>
+
+                    <h4 className="text-lg font-serif font-bold text-white flex items-center justify-between">
+                      <span>Uyyala Kunda (ఉయ్యాల కుండ)</span>
+                      <span className="text-emerald-400 font-sans font-bold text-xs uppercase">Free</span>
+                    </h4>
+                    <p className="text-xs text-[#FFE27A] font-medium font-telugu mt-0.5">
+                      ఉయ్యాల కుండ &bull; గరిష్ట రివార్డులు
+                    </p>
+                    <p className="text-[11px] text-[#F6EEDD]/75 mt-1.5 leading-relaxed">
+                      Swinging silk-rope matka packed with royal sweets, silver keepsakes &amp; 3x grand tickets.
+                    </p>
+
+                    <div className="mt-3 pt-2.5 border-t border-[#C6296F]/30 space-y-1.5">
+                      {POT_TIERS.uyyala.perks.slice(0, 3).map((perk, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5 text-[11px] text-[#F6EEDD]/80">
+                          <Check className="w-3 h-3 text-[#FFE27A] shrink-0 mt-0.5" />
+                          <span>{perk}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2">
+                    <span className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-colors ${
+                      selectedPot === 'uyyala'
+                        ? 'bg-gradient-to-r from-[#C6296F] via-[#E8B923] to-[#C6296F] text-white shadow'
+                        : 'bg-[#14224A] text-[#F6EEDD]/80 border border-[#E8B923]/30'
+                    }`}>
+                      {selectedPot === 'uyyala' ? '✓ Selected (Free)' : 'Choose Uyyala Kunda (Free)'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Devotee Details Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
-          </form>
-        </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#E8B923] uppercase tracking-wider mb-1">
+                  Devotee Full Name / భక్తుడి పేరు *
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#E8B923]/60" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Sai Krishna Varma"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-sm text-white placeholder-[#F6EEDD]/30 focus:outline-none focus:border-[#E8B923] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#E8B923] uppercase tracking-wider mb-1">
+                    WhatsApp / Mobile No. *
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#E8B923]/60" />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      maxLength={10}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-sm text-white placeholder-[#F6EEDD]/30 focus:outline-none focus:border-[#E8B923] transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#E8B923] uppercase tracking-wider mb-1">
+                    City / పట్టణం
+                  </label>
+                  <div className="relative">
+                    <MapPin className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#E8B923]/60" />
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="e.g. Hyderabad / Vijayawada"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-sm text-white placeholder-[#F6EEDD]/30 focus:outline-none focus:border-[#E8B923] transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Perks Highlight Box */}
+              <div className="p-3.5 rounded-2xl bg-[#080E24]/90 border border-[#E8B923]/25 text-xs space-y-1.5">
+                <div className="flex items-center justify-between text-[#FFE27A] font-bold">
+                  <span>Selected: {currentTier.name}</span>
+                  <span>{isVenna ? '₹5 Offering • 1x Draw Ticket' : 'Free • 3x Draw Tickets'}</span>
+                </div>
+                <p className="text-[11px] text-[#F6EEDD]/70">
+                  {isVenna
+                    ? '✓ Instant SMEpay payment gateway &bull; Guaranteed festive discount voucher &bull; Entry into 180 Cash Winners Grand Draw on 10th September!'
+                    : '✓ Free instant crack access &bull; Guaranteed festive discount voucher &bull; Entry into 180 Cash Winners Grand Draw on 10th September!'}
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                id="btn-confirm-claim-pot"
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#E8B923] via-[#FFE27A] to-[#E8B923] text-[#0B1230] font-black text-base sm:text-lg flex items-center justify-center gap-2 shadow-[0_0_35px_rgba(232,185,35,0.4)] hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Sparkles className="w-5 h-5 animate-spin" />
+                    <span>Blessing &amp; Claiming Pot...</span>
+                  </>
+                ) : isVenna ? (
+                  <>
+                    <CreditCard className="w-5 h-5 text-[#0B1230]" />
+                    <span>Pay ₹5 via SMEpay &bull; Claim Venna Kunda 🏺</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                ) : (
+                  <>
+                    <span>Claim Uyyala Kunda (Free) &bull; Start Cracking 🏺</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="mt-3 text-center text-[11px] text-[#F6EEDD]/50 flex items-center justify-center gap-1.5 shrink-0">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>100% Free Festival Campaign &bull; Sri Krishna Janmashtami 2026</span>
+          <span>Secure Devotee Portal &bull; Sri Krishna Janmashtami 2026</span>
         </div>
       </div>
     </div>

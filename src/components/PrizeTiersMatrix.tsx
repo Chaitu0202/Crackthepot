@@ -27,15 +27,15 @@ export const PrizeTiersMatrix: React.FC<PrizeTiersMatrixProps> = ({ onSelectTier
 
       {/* Two-Column Comparison Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
-        {/* Tier 1: Venna Kunda (Casual / Free) */}
+        {/* Tier 1: Venna Kunda (Casual / ₹5 Offering) */}
         <div className="rounded-2xl p-6 sm:p-8 bg-[#14224A]/70 border border-[#E8B923]/30 backdrop-blur-sm flex flex-col justify-between shadow-xl relative group hover:border-[#E8B923]/60 transition-all">
           <div>
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="text-xs font-semibold text-[#E8B923] uppercase tracking-wider">
-                Casual Festive Pot
+                Festive Offering Pot
               </span>
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black">
-                FREE CLAIM
+              <span className="px-3 py-1 rounded-full bg-[#E8B923]/25 text-[#FFE27A] border border-[#E8B923]/50 text-xs font-black">
+                ₹5 OFFERING
               </span>
             </div>
 
@@ -43,7 +43,7 @@ export const PrizeTiersMatrix: React.FC<PrizeTiersMatrixProps> = ({ onSelectTier
               Venna Kunda (వెన్న కుండ)
             </h3>
             <p className="text-xs sm:text-sm text-[#F6EEDD]/75 mt-1">
-              Perfect for casual lucky dips &amp; quick festive discounts.
+              Perfect for casual lucky dips, sweet hampers &amp; ₹5 offering draw entry.
             </p>
 
             {/* Rewards Breakdown */}
@@ -88,7 +88,7 @@ export const PrizeTiersMatrix: React.FC<PrizeTiersMatrixProps> = ({ onSelectTier
               onClick={() => onSelectTier('venna')}
               className="w-full py-3.5 px-6 rounded-xl bg-[#E8B923] text-[#0B1230] font-bold text-sm hover:brightness-105 active:scale-95 transition-all cursor-pointer shadow flex items-center justify-center gap-2"
             >
-              <span>Select Venna Kunda (Free)</span>
+              <span>Pay ₹5 &amp; Select Venna Kunda</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
