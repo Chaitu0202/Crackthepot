@@ -7,19 +7,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DevoteeProfile, PotId, POT_TIERS, InstantReward, ClaimedPotInstance } from './types';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
-import { PotCard3D } from './components/PotCard3D';
 import { CrackGameEngine } from './components/CrackGameEngine';
-import { ReferralBoostSection } from './components/ReferralBoostSection';
-import { PrizeTiersMatrix } from './components/PrizeTiersMatrix';
-import { GrandPrizeCountdown } from './components/GrandPrizeCountdown';
-import { PotCrackersLiveTicker } from './components/PotCrackersLiveTicker';
 import { Footer } from './components/Footer';
 import { TermsModal } from './components/TermsModal';
-import { ClaimPotModal } from './components/ClaimPotModal';
 import { MyPotsModal } from './components/MyPotsModal';
 import { ThankYouPage } from './components/ThankYouPage';
-import { Sparkles } from 'lucide-react';
-import { RangoliDivider } from './components/SvgMotifs';
+import { CreditCard, CheckCircle2, ArrowRight, ExternalLink } from 'lucide-react';
 
 export default function App() {
   const [selectedPotId, setSelectedPotId] = useState<PotId>('uyyala');
@@ -30,14 +23,26 @@ export default function App() {
     return pageParam === 'thankyou' ? 'thankyou' : 'dashboard';
   });
   const [isTermsOpen, setIsTermsOpen] = useState<boolean>(false);
-  const [isClaimModalOpen, setIsClaimModalOpen] = useState<boolean>(false);
   const [isMyPotsOpen, setIsMyPotsOpen] = useState<boolean>(false);
+  const [showPaymentSuccessDialog, setShowPaymentSuccessDialog] = useState<boolean>(false);
 
-  // Devotee profile state with local persistence
+  // Devotee profile state with local persistence (default identity without asking for user input)
   const [devoteeProfile, setDevoteeProfile] = useState<DevoteeProfile | null>(() => {
     try {
       const saved = localStorage.getItem('krishna_pot_devotee');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) return JSON.parse(saved);
+      return {
+        name: 'Blessed Devotee',
+        phone: '9876543210',
+        city: 'Hyderabad',
+        selectedPot: 'uyyala',
+        referralCode: 'KRISHNA-DEVOTEE-2026',
+        referralCount: 0,
+        tickets: ['GPD-2026-883921', 'GPD-2026-104928', 'GPD-2026-442109'],
+        registeredAt: new Date().toISOString(),
+        paymentAmount: 0,
+        paymentStatus: 'free',
+      };
     } catch {
       return null;
     }
@@ -51,25 +56,19 @@ export default function App() {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-      // If devoteeProfile already exists, create default claimed pot
-      const devoteeSaved = localStorage.getItem('krishna_pot_devotee');
-      if (devoteeSaved) {
-        const parsedDev = JSON.parse(devoteeSaved);
-        const defaultPot: ClaimedPotInstance = {
-          id: `pot-${Date.now()}`,
-          potId: parsedDev.selectedPot || 'uyyala',
-          devoteeName: parsedDev.name,
-          phone: parsedDev.phone,
-          city: parsedDev.city,
-          tickets: parsedDev.tickets || ['GPD-2026-883921', 'GPD-2026-104928'],
-          claimedAt: parsedDev.registeredAt || new Date().toISOString(),
-          sharesCount: 0,
-          isCracked: false,
-          wonReward: parsedDev.claimedReward,
-        };
-        return [defaultPot];
-      }
-      return [];
+      const initialPot: ClaimedPotInstance = {
+        id: `pot-${Date.now()}`,
+        potId: 'uyyala',
+        devoteeName: 'Blessed Devotee',
+        phone: '9876543210',
+        city: 'Hyderabad',
+        tickets: ['GPD-2026-883921', 'GPD-2026-104928', 'GPD-2026-442109'],
+        claimedAt: new Date().toISOString(),
+        sharesCount: 0,
+        isCracked: false,
+        paymentAmount: 0,
+      };
+      return [initialPot];
     } catch {
       return [];
     }
@@ -79,13 +78,10 @@ export default function App() {
     if (devoteeProfile?.tickets?.length) {
       return devoteeProfile.tickets;
     }
-    return ['GPD-2026-883921', 'GPD-2026-104928'];
+    return ['GPD-2026-883921', 'GPD-2026-104928', 'GPD-2026-442109'];
   });
 
-  const [wonPrizes, setWonPrizes] = useState<InstantReward[]>([]);
-
   const crackArenaRef = useRef<HTMLDivElement>(null);
-  const potSelectionRef = useRef<HTMLDivElement>(null);
 
   // Detect payment return from SMEpay URL parameters or query strings
   useEffect(() => {
@@ -101,103 +97,70 @@ export default function App() {
         params.has('txnid');
 
       if (isThankYouPage) {
-        // Retrieve pending details if available
-        const pendingRaw = localStorage.getItem('krishna_pending_payment');
-        let pending = null;
-        if (pendingRaw) {
-          try {
-            pending = JSON.parse(pendingRaw);
-          } catch {
-            // ignore
-          }
-        }
-
-        const ticketPrefix = 'GPD-2026-';
-        const newTicket = `${ticketPrefix}${Math.floor(100000 + Math.random() * 900000)}`;
-        const txnId = `SME-VALDFFL-${Math.floor(100000 + Math.random() * 900000)}`;
-
-        const profileName = pending?.name || devoteeProfile?.name || 'Blessed Devotee';
-        const profilePhone = pending?.phone || devoteeProfile?.phone || '9876543210';
-        const profileCity = pending?.city || devoteeProfile?.city || 'Hyderabad';
-
-        const updatedProfile: DevoteeProfile = {
-          name: profileName,
-          phone: profilePhone,
-          city: profileCity,
-          selectedPot: 'venna',
-          referralCode: devoteeProfile?.referralCode || `KRISHNA-${profileName.slice(0, 4).toUpperCase()}-772`,
-          referralCount: devoteeProfile?.referralCount || 0,
-          tickets: Array.from(new Set([...(devoteeProfile?.tickets || []), newTicket])),
-          registeredAt: new Date().toISOString(),
-          paymentAmount: 5,
-          paymentStatus: 'completed',
-          transactionId: txnId,
-        };
-
-        const newPotInst: ClaimedPotInstance = {
-          id: `pot-${Date.now()}`,
-          potId: 'venna',
-          devoteeName: profileName,
-          phone: profilePhone,
-          city: profileCity,
-          tickets: [newTicket],
-          claimedAt: new Date().toISOString(),
-          sharesCount: 0,
-          isCracked: false,
-          paymentAmount: 5,
-          transactionId: txnId,
-        };
-
-        setDevoteeProfile(updatedProfile);
-        setSelectedPotId('venna');
-        setUserTickets((prev) => Array.from(new Set([...prev, newTicket])));
-        setClaimedPots((prev) => {
-          const filtered = prev.filter((p) => p.potId !== 'venna');
-          const updated = [newPotInst, ...filtered];
-          try {
-            localStorage.setItem('krishna_claimed_pots', JSON.stringify(updated));
-          } catch {
-            // ignore
-          }
-          return updated;
-        });
-
-        try {
-          localStorage.setItem('krishna_pot_devotee', JSON.stringify(updatedProfile));
-          localStorage.removeItem('krishna_pending_payment');
-        } catch {
-          // ignore
-        }
-
-        setCurrentView('thankyou');
+        confirmVennaPaymentSuccess();
       }
     } catch {
       // ignore
     }
   }, []);
 
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
+  const scrollToArena = () => {
+    const el = document.getElementById('crack-interactive-arena');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  const handleOpenClaimModal = (potId?: PotId) => {
-    if (potId) {
-      setSelectedPotId(potId);
-    }
-    setIsClaimModalOpen(true);
+  // Venna Kunda (₹5) payment handler - NO details asked
+  const handlePayVennaKunda = () => {
+    setSelectedPotId('venna');
+    const paymentUrl = POT_TIERS.venna.paymentUrl || 'https://page.smepay.in/@crackthepot/transaction/valdffl';
+
+    // Open SMEpay in new tab
+    window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+    setShowPaymentSuccessDialog(true);
   };
 
-  const handleProfileSubmitted = (profile: DevoteeProfile, newPotInstance: ClaimedPotInstance) => {
-    setDevoteeProfile(profile);
-    setSelectedPotId(profile.selectedPot);
-    setUserTickets((prev) => Array.from(new Set([...prev, ...profile.tickets])));
+  // Confirm Venna payment completion and render Thank You page
+  const confirmVennaPaymentSuccess = () => {
+    const ticketPrefix = 'GPD-2026-';
+    const newTicket = `${ticketPrefix}${Math.floor(100000 + Math.random() * 900000)}`;
+    const txnId = `SME-VALDFFL-${Math.floor(100000 + Math.random() * 900000)}`;
 
+    const updatedProfile: DevoteeProfile = {
+      name: devoteeProfile?.name || 'Blessed Devotee',
+      phone: devoteeProfile?.phone || '9876543210',
+      city: devoteeProfile?.city || 'Hyderabad',
+      selectedPot: 'venna',
+      referralCode: 'KRISHNA-VENNA-2026',
+      referralCount: devoteeProfile?.referralCount || 0,
+      tickets: Array.from(new Set([...(devoteeProfile?.tickets || []), newTicket])),
+      registeredAt: new Date().toISOString(),
+      paymentAmount: 5,
+      paymentStatus: 'completed',
+      transactionId: txnId,
+    };
+
+    const newPotInst: ClaimedPotInstance = {
+      id: `pot-${Date.now()}`,
+      potId: 'venna',
+      devoteeName: updatedProfile.name,
+      phone: updatedProfile.phone,
+      city: updatedProfile.city,
+      tickets: [newTicket],
+      claimedAt: new Date().toISOString(),
+      sharesCount: 0,
+      isCracked: false,
+      paymentAmount: 5,
+      transactionId: txnId,
+    };
+
+    setDevoteeProfile(updatedProfile);
+    setSelectedPotId('venna');
+    setUserTickets((prev) => Array.from(new Set([...prev, newTicket])));
     setClaimedPots((prev) => {
-      const filtered = prev.filter((p) => p.potId !== newPotInstance.potId);
-      const updated = [newPotInstance, ...filtered];
+      const filtered = prev.filter((p) => p.potId !== 'venna');
+      const updated = [newPotInst, ...filtered];
       try {
         localStorage.setItem('krishna_claimed_pots', JSON.stringify(updated));
       } catch {
@@ -207,26 +170,22 @@ export default function App() {
     });
 
     try {
-      localStorage.setItem('krishna_pot_devotee', JSON.stringify(profile));
+      localStorage.setItem('krishna_pot_devotee', JSON.stringify(updatedProfile));
     } catch {
       // ignore
     }
 
-    setIsClaimModalOpen(false);
+    setShowPaymentSuccessDialog(false);
     setCurrentView('thankyou');
   };
 
-  const handleStartCrack = (potId: PotId) => {
-    setSelectedPotId(potId);
-    if (!devoteeProfile) {
-      handleOpenClaimModal(potId);
-    } else {
-      scrollToSection('crack-interactive-arena');
-    }
+  // Uyyala Kunda (Free) selection handler - NO details asked
+  const handleSelectUyyalaKunda = () => {
+    setSelectedPotId('uyyala');
+    scrollToArena();
   };
 
   const handleRewardWon = (reward: InstantReward, tickets: string[]) => {
-    setWonPrizes((prev) => [reward, ...prev]);
     setUserTickets((prev) => Array.from(new Set([...prev, ...tickets])));
 
     if (devoteeProfile) {
@@ -287,7 +246,7 @@ export default function App() {
       setCurrentView('dashboard');
     }
     setTimeout(() => {
-      scrollToSection('crack-interactive-arena');
+      scrollToArena();
     }, 150);
   };
 
@@ -305,7 +264,7 @@ export default function App() {
         onNavigateView={(view) => {
           setCurrentView(view);
           if (view === 'dashboard') {
-            setTimeout(() => scrollToSection('pots-selection'), 100);
+            setTimeout(scrollToArena, 100);
           }
         }}
       />
@@ -319,9 +278,7 @@ export default function App() {
             claimedPots={claimedPots}
             onGoToDashboard={() => {
               setCurrentView('dashboard');
-              setTimeout(() => {
-                scrollToSection('crack-interactive-arena');
-              }, 150);
+              setTimeout(scrollToArena, 150);
             }}
             onOpenMyPots={() => setIsMyPotsOpen(true)}
             soundEnabled={soundEnabled}
@@ -330,67 +287,34 @@ export default function App() {
         </div>
       ) : (
         <>
-          {/* 1. HERO SECTION */}
+          {/* 1. CLEAN HERO SECTION WITH "కుండ పగలగొట్టు" AND DIRECT VENNA & UYYALA POTS */}
           <HeroSection
-            onPickPotClick={() => scrollToSection('pots-selection')}
-            onRequestClaim={() => handleOpenClaimModal(selectedPotId)}
-            devoteeProfile={devoteeProfile}
+            onSelectPot={(id) => {
+              setSelectedPotId(id);
+              if (id === 'uyyala') {
+                handleSelectUyyalaKunda();
+              } else {
+                handlePayVennaKunda();
+              }
+            }}
+            onPayVennaKunda={handlePayVennaKunda}
+            selectedPotId={selectedPotId}
           />
 
-          {/* LIVE SCROLLABLE POT CRACKERS STREAM / HALL OF FAME */}
-          <PotCrackersLiveTicker
-            onPickPotClick={() => scrollToSection('pots-selection')}
-          />
-
-          {/* 2. POT SELECTION SECTION (Core Interactive 3D Moment) */}
-          <section
-            id="pots-selection"
-            ref={potSelectionRef}
-            className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full"
-          >
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#E8B923]/15 border border-[#E8B923]/30 text-[#E8B923] text-xs font-semibold uppercase tracking-wider mb-3">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Interactive 3D Matka Selection</span>
-              </div>
-
-              <h2 className="text-3xl sm:text-5xl font-serif font-bold text-[#F6EEDD] tracking-tight">
-                Choose Your Auspicious Pot
-              </h2>
-              <p className="mt-2 text-base sm:text-lg text-[#F6EEDD]/80 max-w-xl mx-auto">
-                Hover &amp; tilt to inspect in real 3D. Pick between the Casual Venna Kunda or the Royal Uyyala Kunda.
-              </p>
-            </div>
-
-            {/* Two 3D Interactive Pot Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 max-w-4xl mx-auto items-stretch">
-              <PotCard3D
-                pot={POT_TIERS.venna}
-                isSelected={selectedPotId === 'venna'}
-                onSelect={(id) => setSelectedPotId(id)}
-                onStartCrack={handleStartCrack}
-              />
-              <PotCard3D
-                pot={POT_TIERS.uyyala}
-                isSelected={selectedPotId === 'uyyala'}
-                onSelect={(id) => setSelectedPotId(id)}
-                onStartCrack={handleStartCrack}
-              />
-            </div>
-
-            <div className="mt-12 max-w-sm mx-auto">
-              <RangoliDivider />
-            </div>
-          </section>
-
-          {/* 3. THE CRACK MECHANIC (Interactive Clean Arena with Share Options) */}
-          <section className="py-12 px-4 sm:px-6 lg:px-8 w-full" ref={crackArenaRef}>
+          {/* 2. DIRECT INTERACTIVE CRACK ARENA - TAP & SHARE TO CRACK */}
+          <section className="py-8 px-4 sm:px-6 lg:px-8 w-full" ref={crackArenaRef}>
             <CrackGameEngine
               activePotId={selectedPotId}
               onSelectPot={(id) => setSelectedPotId(id)}
               devoteeProfile={devoteeProfile}
               claimedPots={claimedPots}
-              onRequestClaim={(potId) => handleOpenClaimModal(potId || selectedPotId)}
+              onRequestClaim={(potId) => {
+                if (potId === 'venna') {
+                  handlePayVennaKunda();
+                } else {
+                  handleSelectUyyalaKunda();
+                }
+              }}
               onRewardWon={handleRewardWon}
               onReferralBoost={() => {
                 const bonus = `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -402,48 +326,83 @@ export default function App() {
             />
           </section>
 
-          {/* 4. REFERRAL BOOST & STRENGTH METER */}
-          <ReferralBoostSection
-            devoteeProfile={devoteeProfile}
-            userTickets={userTickets}
-            onAddBonusTicket={handleAddBonusTicket}
-            soundEnabled={soundEnabled}
-          />
-
-          {/* 5. PRIZE TIERS & REWARD ODDS MATRIX */}
-          <PrizeTiersMatrix
-            onSelectTier={(potId) => {
-              setSelectedPotId(potId);
-              if (!devoteeProfile) {
-                handleOpenClaimModal(potId);
-              } else {
-                scrollToSection('crack-interactive-arena');
-              }
-            }}
-          />
-
-          {/* 6. GRAND PRIZE COUNTDOWN TO 10TH SEPTEMBER */}
-          <GrandPrizeCountdown />
-
-          {/* 7. FOOTER */}
+          {/* 3. FOOTER */}
           <Footer onOpenTerms={() => setIsTermsOpen(true)} />
         </>
+      )}
+
+      {/* QUICK PAYMENT CONFIRMATION DIALOG (When SMEpay is opened) - ZERO FORM FIELDS */}
+      {showPaymentSuccessDialog && (
+        <div
+          id="payment-success-modal-backdrop"
+          className="fixed inset-0 z-50 bg-[#040816]/90 backdrop-blur-md flex items-center justify-center p-4"
+        >
+          <div
+            id="payment-success-modal-container"
+            className="w-full max-w-md rounded-3xl bg-gradient-to-b from-[#14224A] via-[#0E1738] to-[#070D22] border-2 border-[#E8B923] p-6 sm:p-7 text-center space-y-4 shadow-[0_0_50px_rgba(232,185,35,0.4)] animate-in zoom-in-95"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-[#E8B923]/20 border border-[#E8B923] text-[#E8B923] flex items-center justify-center mx-auto">
+              <CreditCard className="w-7 h-7 animate-pulse" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-xl font-serif font-bold text-white">
+                ₹5 SMEpay Gateway Opened
+              </h3>
+              <p className="text-xs text-[#F6EEDD]/80">
+                We opened the official SMEpay gateway in a new tab. After making your ₹5 offering, click below to see your <strong>Thank You</strong> page &amp; lucky draw tickets!
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-[#080E24] border border-[#E8B923]/30 text-xs text-left space-y-1">
+              <div className="flex justify-between text-[#F6EEDD]/70">
+                <span>Selected Offering:</span>
+                <span className="font-bold text-[#FFE27A]">Venna Kunda (వెన్న కుండ)</span>
+              </div>
+              <div className="flex justify-between text-[#F6EEDD]/70">
+                <span>Offering Amount:</span>
+                <span className="font-bold text-[#E8B923]">₹5.00</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                id="btn-confirm-payment-done"
+                onClick={confirmVennaPaymentSuccess}
+                className="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 via-[#E8B923] to-emerald-500 text-[#0B1230] font-black text-sm flex items-center justify-center gap-2 hover:brightness-105 active:scale-95 transition-all shadow cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4 text-[#0B1230]" />
+                <span>I Have Paid ₹5 &bull; View Thank You Page</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center justify-center gap-3 text-xs text-[#F6EEDD]/60 pt-1">
+                <a
+                  href={POT_TIERS.venna.paymentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#E8B923] hover:underline flex items-center gap-1 font-semibold"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Reopen Gateway</span>
+                </a>
+                <span>&bull;</span>
+                <button
+                  onClick={() => setShowPaymentSuccessDialog(false)}
+                  className="hover:text-white underline cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* TERMS & CONDITIONS MODAL */}
       <TermsModal
         isOpen={isTermsOpen}
         onClose={() => setIsTermsOpen(false)}
-      />
-
-      {/* DEVOTEE CLAIM POT MODAL (Renders both variants in rich detail) */}
-      <ClaimPotModal
-        isOpen={isClaimModalOpen}
-        onClose={() => setIsClaimModalOpen(false)}
-        selectedPot={selectedPotId}
-        onSelectPotChange={(id) => setSelectedPotId(id)}
-        onProfileCreated={handleProfileSubmitted}
-        soundEnabled={soundEnabled}
       />
 
       {/* MY POTS MODAL (Browser-persisted pots management) */}
@@ -453,7 +412,7 @@ export default function App() {
         claimedPots={claimedPots}
         activePotId={selectedPotId}
         onSelectAndCrackPot={handleSelectAndCrackPot}
-        onClaimNewPot={() => handleOpenClaimModal()}
+        onClaimNewPot={() => handleSelectUyyalaKunda()}
       />
     </div>
   );

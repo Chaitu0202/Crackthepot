@@ -227,11 +227,6 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
   };
 
   const handlePotTap = () => {
-    if (!devoteeProfile) {
-      onRequestClaim(activePotId);
-      return;
-    }
-
     if (isCracked) return;
 
     if (isShatterReady) {
@@ -243,7 +238,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
     setIsShaking(true);
     playPotTap(1, !soundEnabled);
     setTimeout(() => setIsShaking(false), 300);
-    setShareFeedback('Share with friends below using WhatsApp or Instagram to soften the pot and reach 100%!');
+    setShareFeedback('Share with friends below using WhatsApp or Instagram to soften the clay & crack!');
   };
 
   const copyVoucher = () => {
@@ -260,70 +255,45 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
       className="w-full max-w-4xl mx-auto rounded-3xl bg-gradient-to-b from-[#0E1838] via-[#0A122C] to-[#060B1E] border-2 border-[#E8B923]/40 p-5 sm:p-8 relative shadow-[0_0_60px_rgba(232,185,35,0.15)] text-[#F6EEDD]"
     >
       {/* Devotee / Pot Status Banner */}
-      {devoteeProfile ? (
-        <div className="mb-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#1B7A6E]/30 via-[#0B1230] to-[#E8B923]/20 border border-[#E8B923]/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1B7A6E] to-[#E8B923] p-0.5 flex items-center justify-center text-[#0B1230] shadow shrink-0">
-              <NemaliIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm sm:text-base font-bold text-[#F6EEDD]">
-                  {devoteeProfile.name}&rsquo;s {isUyyala ? 'Uyyala Kunda' : 'Venna Kunda'}
-                </span>
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  <span>Verified Devotee</span>
-                </span>
-              </div>
-              <p className="text-xs text-[#E8B923] font-medium">
-                {isUyyala
-                  ? 'Royal Uyyala Kunda &bull; 3x Grand Draw Tickets (#GPD-2026)'
-                  : 'Casual Venna Kunda &bull; 1x Grand Draw Ticket'}
-              </p>
-            </div>
+      <div className="mb-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-[#1B7A6E]/30 via-[#0B1230] to-[#E8B923]/20 border border-[#E8B923]/50 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1B7A6E] to-[#E8B923] p-0.5 flex items-center justify-center text-[#0B1230] shadow shrink-0">
+            <NemaliIcon className="w-6 h-6" />
           </div>
-
-          <div className="flex items-center gap-2">
-            {claimedPots.length > 0 && (
-              <button
-                onClick={onOpenMyPots}
-                className="px-3 py-1.5 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/40 border border-[#E8B923]/40 text-xs font-bold text-[#E8B923] flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>My Pots ({claimedPots.length})</span>
-              </button>
-            )}
-            <span className="text-xs text-emerald-300 font-semibold px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{isShatterReady ? 'Ready to Shatter 💥' : 'Ready to Crack'}</span>
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-[#E8B923]/20 via-[#0B1230] to-[#C6296F]/20 border border-[#E8B923]/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3 text-center sm:text-left">
-            <NemaliIcon className="w-8 h-8 shrink-0 text-[#E8B923]" />
-            <div>
-              <span className="text-xs sm:text-sm font-bold text-[#F6EEDD] block">
-                Claim Your Auspicious {isUyyala ? 'Uyyala Kunda' : 'Venna Kunda'} (100% Free)
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm sm:text-base font-bold text-[#F6EEDD]">
+                {devoteeProfile?.name || 'Blessed Devotee'}&rsquo;s {isUyyala ? 'Uyyala Kunda' : 'Venna Kunda'}
               </span>
-              <span className="text-[11px] text-[#E8B923]/80">
-                Guaranteed instant festive discounts + 180 Cash Winners Grand Draw Entry!
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Active &bull; No Login Required</span>
               </span>
             </div>
+            <p className="text-xs text-[#E8B923] font-medium">
+              {isUyyala
+                ? 'Royal Uyyala Kunda &bull; 3x Grand Draw Tickets (#GPD-2026)'
+                : 'Festive Venna Kunda &bull; 1x Grand Draw Ticket'}
+            </p>
           </div>
-
-          <button
-            id="btn-claim-pot-banner"
-            onClick={() => onRequestClaim(activePotId)}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#E8B923] via-[#FFE27A] to-[#E8B923] text-[#0B1230] font-black text-xs sm:text-sm flex items-center gap-1.5 hover:brightness-105 active:scale-95 transition-all shadow-lg cursor-pointer whitespace-nowrap"
-          >
-            <Sparkles className="w-4 h-4 text-[#0B1230]" />
-            <span>Claim Pot &amp; Crack 🏺</span>
-          </button>
         </div>
-      )}
+
+        <div className="flex items-center gap-2">
+          {claimedPots.length > 0 && (
+            <button
+              onClick={onOpenMyPots}
+              className="px-3 py-1.5 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/40 border border-[#E8B923]/40 text-xs font-bold text-[#E8B923] flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>My Pots ({claimedPots.length})</span>
+            </button>
+          )}
+          <span className="text-xs text-emerald-300 font-semibold px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{isShatterReady ? 'Ready to Shatter 💥' : 'Tap & Share to Crack'}</span>
+          </span>
+        </div>
+      </div>
 
       {/* Top Header & Pot Selector */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-[#E8B923]/20">
