@@ -17,6 +17,8 @@ import { Footer } from './components/Footer';
 import { TermsModal } from './components/TermsModal';
 import { ClaimPotModal } from './components/ClaimPotModal';
 import { SacredDakshinaModal } from './components/SacredDakshinaModal';
+import { PaymentStatusModal, PaymentVerificationState } from './components/PaymentStatusModal';
+import { DAKSHINA_PAYMENT_LINKS } from './types';
 import { Sparkles, Trophy, Gift, ArrowDown } from 'lucide-react';
 import { RangoliDivider, DiyaLamp } from './components/SvgMotifs';
 
@@ -66,6 +68,8 @@ export default function App() {
   const [isTermsOpen, setIsTermsOpen] = useState<boolean>(false);
   const [isClaimModalOpen, setIsClaimModalOpen] = useState<boolean>(false);
   const [isDakshinaModalOpen, setIsDakshinaModalOpen] = useState<boolean>(false);
+  const [isPaymentStatusOpen, setIsPaymentStatusOpen] = useState<boolean>(false);
+  const [paymentVerificationState, setPaymentVerificationState] = useState<PaymentVerificationState>('prompt');
   
   // Devotee profile state with local persistence
   const [devoteeProfile, setDevoteeProfile] = useState<DevoteeProfile | null>(() => {
@@ -93,16 +97,86 @@ export default function App() {
     }
   };
 
-  const handleOpenDakshinaModal = (potId?: PotId) => {
-    if (potId) {
-      setSelectedPotId(potId);
+  // Direct Redirect to SMEPay transaction page
+  const handleDirectSmePayRedirect = (potId: PotId) => {
+    const isUyyala = potId === 'uyyala';
+    const targetUrl = isUyyala ? DAKSHINA_PAYMENT_LINKS.uyyala : DAKSHINA_PAYMENT_LINKS.venna;
+    setSelectedPotId(potId);
+
+    try {
+      localStorage.setItem(
+        'smepay_pending_txn',
+        JSON.stringify({
+          potId,
+          amount: isUyyala ? 9 : 5,
+          initiatedAt: Date.now(),
+          targetUrl,
+        })
+      );
+    } catch {
+      // ignore
     }
-    setIsDakshinaModalOpen(true);
+
+    // Directly navigate to SMEPay transaction gateway
+    window.location.href = targetUrl;
+  };
+
+  // Check URL parameters and pending payment on page load/return
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = (
+      urlParams.get('status') ||
+      urlParams.get('payment_status') ||
+      urlParams.get('txn_status') ||
+      urlParams.get('smepay')
+    )?.toLowerCase();
+
+    // 1. Direct URL outcome detection
+    if (statusParam === 'success' || statusParam === 'completed') {
+      const potType = (urlParams.get('pot') as PotId) || selectedPotId || 'uyyala';
+      const amount = potType === 'uyyala' ? 9 : 5;
+      const txn = urlParams.get('txnId') || `SME-TXN-${Date.now()}`;
+      handlePaymentSuccess(amount, txn, potType);
+      setPaymentVerificationState('success');
+      setIsPaymentStatusOpen(true);
+      try {
+        localStorage.removeItem('smepay_pending_txn');
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    if (statusParam === 'failed' || statusParam === 'failure' || statusParam === 'cancel') {
+      setPaymentVerificationState('failed');
+      setIsPaymentStatusOpen(true);
+      return;
+    }
+
+    // 2. Pending payment return detection
+    try {
+      const pendingRaw = localStorage.getItem('smepay_pending_txn');
+      if (pendingRaw) {
+        const pending = JSON.parse(pendingRaw);
+        // Only trigger if initiated in the last 2 hours and not yet marked paid
+        const isRecent = Date.now() - (pending.initiatedAt || 0) < 2 * 60 * 60 * 1000;
+        if (isRecent && (!devoteeProfile || !devoteeProfile.isPaid || devoteeProfile.potType !== pending.potId)) {
+          setSelectedPotId(pending.potId || 'uyyala');
+          setPaymentVerificationState('prompt');
+          setIsPaymentStatusOpen(true);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleOpenDakshinaModal = (potId?: PotId) => {
+    handleDirectSmePayRedirect(potId || selectedPotId);
   };
 
   const handleOpenClaimModal = (potId?: PotId) => {
-    // Directly route to Sacred Dakshina Payment modal (no redundant details requested)
-    handleOpenDakshinaModal(potId);
+    handleDirectSmePayRedirect(potId || selectedPotId);
   };
 
   const handleProfileSubmitted = (profile: DevoteeProfile) => {
@@ -113,10 +187,7 @@ export default function App() {
     } catch {
       // ignore
     }
-    // Directly open the Sacred ₹5 / ₹9 Token Dakshina payment modal
-    setTimeout(() => {
-      setIsDakshinaModalOpen(true);
-    }, 150);
+    handleDirectSmePayRedirect(profile.potType);
   };
 
   const handlePaymentSuccess = (amount: number, txnId: string, potType: PotId) => {
@@ -137,11 +208,12 @@ export default function App() {
     setDevoteeProfile(updatedProfile);
     try {
       localStorage.setItem('krishna_pot_devotee', JSON.stringify(updatedProfile));
+      localStorage.removeItem('smepay_pending_txn');
     } catch {
       // ignore
     }
 
-    // Add instant bonus draw tickets for the sacred offering
+    // Add instant bonus draw tickets for the sacred offering (3x for Uyyala, 1x for Venna)
     const bonusTickets = potType === 'uyyala'
       ? [
           `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -161,7 +233,7 @@ export default function App() {
   const handleStartCrack = (potId: PotConfig['id']) => {
     setSelectedPotId(potId);
     if (!devoteeProfile || !devoteeProfile.isPaid || devoteeProfile.potType !== potId) {
-      setIsDakshinaModalOpen(true);
+      handleDirectSmePayRedirect(potId);
     } else {
       scrollToSection('crack-interactive-arena');
     }
@@ -299,6 +371,23 @@ export default function App() {
         potType={selectedPotId}
         devoteeProfile={devoteeProfile}
         onPaymentSuccess={handlePaymentSuccess}
+        soundEnabled={soundEnabled}
+      />
+
+      {/* SMEPAY PAYMENT STATUS & VERIFICATION MODAL (SUCCESS / FAILED / PROMPT) */}
+      <PaymentStatusModal
+        isOpen={isPaymentStatusOpen}
+        onClose={() => setIsPaymentStatusOpen(false)}
+        status={paymentVerificationState}
+        potType={selectedPotId}
+        onConfirmSuccess={(potType) => {
+          const amount = potType === 'uyyala' ? 9 : 5;
+          handlePaymentSuccess(amount, `SME-${Date.now()}`, potType);
+        }}
+        onRetryPayment={(potType) => {
+          setIsPaymentStatusOpen(false);
+          handleDirectSmePayRedirect(potType);
+        }}
         soundEnabled={soundEnabled}
       />
     </div>

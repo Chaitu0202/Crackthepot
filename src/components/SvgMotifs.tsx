@@ -374,3 +374,43 @@ export const InstagramIcon: React.FC<{ className?: string }> = ({ className = 'w
     <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
   </svg>
 );
+
+// PhonePe Brand Icon
+export const PhonePeIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="48" height="48" rx="12" fill="#5F259F" />
+    <path d="M33 24C33 19.0294 28.9706 15 24 15H17V33H22V28H24C28.9706 28 33 23.9706 33 24Z" fill="white" />
+    <path d="M24 24H22V19H24C26.7614 19 29 20.1193 29 21.5C29 22.8807 26.7614 24 24 24Z" fill="#5F259F" />
+    <path d="M26 28L33 37H27L21 29H24C24.7 29 25.4 28.6 26 28Z" fill="white" />
+  </svg>
+);
+
+// Google Pay Brand Icon
+export const GPayIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="48" height="48" rx="12" fill="#FFFFFF" />
+    <path d="M34.5 24.3c0-.7-.06-1.4-.17-2.1H24v4.2h5.9c-.25 1.4-1.04 2.6-2.22 3.4v2.8h3.6c2.1-1.9 3.22-4.8 3.22-8.3z" fill="#4285F4" />
+    <path d="M24 35c2.97 0 5.46-.98 7.28-2.66l-3.6-2.8c-.99.66-2.25 1.06-3.68 1.06-2.83 0-5.23-1.91-6.09-4.48h-3.7v2.9C16.03 32.6 19.74 35 24 35z" fill="#34A853" />
+    <path d="M17.91 26.12c-.22-.66-.35-1.36-.35-2.12s.13-1.46.35-2.12v-2.9h-3.7A11.97 11.97 0 0013 24c0 1.93.46 3.75 1.21 5.02l3.7-2.9z" fill="#FBBC05" />
+    <path d="M24 17.4c1.62 0 3.07.56 4.21 1.64l3.16-3.16C29.45 14.1 26.96 13 24 13c-4.26 0-7.97 2.4-9.79 5.98l3.7 2.9c.86-2.57 3.26-4.48 6.09-4.48z" fill="#EA4335" />
+  </svg>
+);
+
+// Paytm Brand Icon
+export const PaytmIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="48" height="48" rx="12" fill="#002E6E" />
+    <path d="M14 18h5c2.2 0 4 1.8 4 4s-1.8 4-4 4h-2v4h-3V18zm3 5h2c.6 0 1-.4 1-1s-.4-1-1-1h-2v2z" fill="#00BAF2" />
+    <path d="M25 22h3v8h-3v-8zm0-4h3v2h-3v-2z" fill="#00BAF2" />
+    <path d="M30 22h6v2h-4v6h-2v-8z" fill="#00BAF2" />
+  </svg>
+);
+
+// Generic UPI Brand Icon
+export const UpiIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect width="48" height="48" rx="12" fill="#0F172A" />
+    <path d="M26 14L16 34H22L24.5 29H31.5L34 34H40L30 14H26ZM28 21.5L30.2 26H25.8L28 21.5Z" fill="#00BAF2" />
+    <path d="M18 14L8 34H14L24 14H18Z" fill="#38BDF8" opacity="0.8" />
+  </svg>
+);
