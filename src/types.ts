@@ -26,6 +26,19 @@ export interface DevoteeProfile {
   registeredAt: string;
 }
 
+export interface ClaimedPotInstance {
+  id: string;
+  potId: PotId;
+  devoteeName: string;
+  phone: string;
+  city: string;
+  tickets: string[];
+  claimedAt: string;
+  sharesCount: number;
+  isCracked: boolean;
+  wonReward?: InstantReward;
+}
+
 export interface InstantReward {
   id: string;
   code: string;

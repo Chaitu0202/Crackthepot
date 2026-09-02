@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { PotId, DevoteeProfile, POT_TIERS, SAMPLE_REWARDS, InstantReward } from '../types';
+import { PotId, DevoteeProfile, POT_TIERS, SAMPLE_REWARDS, InstantReward, ClaimedPotInstance } from '../types';
 import { playPotTap, playPotShatter, playCelebrationFanfare, playCoinChime, playTempleBell } from '../utils/audio';
 import {
   Sparkles,
@@ -10,21 +10,26 @@ import {
   Volume2,
   VolumeX,
   Trophy,
-  Gift,
   Ticket,
   CheckCircle2,
   Share2,
-  Flame
+  Flame,
+  Layers,
+  ArrowRight,
+  ShieldCheck,
+  Clock
 } from 'lucide-react';
-import { NemaliIcon, WhatsAppIcon, InstagramIcon } from './SvgMotifs';
+import { NemaliIcon, WhatsAppIcon, InstagramIcon, PeacockFeatherIcon } from './SvgMotifs';
 
 interface CrackGameEngineProps {
   activePotId: PotId;
   onSelectPot: (potId: PotId) => void;
   devoteeProfile: DevoteeProfile | null;
+  claimedPots: ClaimedPotInstance[];
   onRequestClaim: (potId?: PotId) => void;
   onRewardWon: (reward: InstantReward, tickets: string[]) => void;
   onReferralBoost: () => void;
+  onOpenMyPots: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
 }
@@ -70,9 +75,11 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
   activePotId,
   onSelectPot,
   devoteeProfile,
+  claimedPots,
   onRequestClaim,
   onRewardWon,
   onReferralBoost,
+  onOpenMyPots,
   soundEnabled,
   onToggleSound,
 }) => {
@@ -88,6 +95,21 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
   const isUyyala = activePotId === 'uyyala';
   const percent = calculatePotCrackPercentage(sharesCount);
   const isShatterReady = percent >= 100;
+
+  // Sync state if active pot has an existing claimed pot instance
+  useEffect(() => {
+    const existing = claimedPots.find((p) => p.potId === activePotId);
+    if (existing) {
+      setSharesCount(existing.sharesCount || 0);
+      setIsCracked(existing.isCracked || false);
+      if (existing.wonReward) {
+        setWonReward(existing.wonReward);
+      }
+      if (existing.tickets?.length) {
+        setAllocatedTickets(existing.tickets);
+      }
+    }
+  }, [activePotId, claimedPots]);
 
   const resetPot = (newPotId?: PotId) => {
     if (newPotId) {
@@ -105,7 +127,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
   const triggerConfetti = () => {
     const colors = ['#E8B923', '#1B7A6E', '#C6296F', '#FFFDF7', '#FFE27A'];
     confetti({
-      particleCount: 140,
+      particleCount: 150,
       spread: 90,
       origin: { y: 0.6 },
       colors,
@@ -113,14 +135,14 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
 
     setTimeout(() => {
       confetti({
-        particleCount: 80,
+        particleCount: 90,
         angle: 60,
         spread: 60,
         origin: { x: 0.1, y: 0.7 },
         colors,
       });
       confetti({
-        particleCount: 80,
+        particleCount: 90,
         angle: 120,
         spread: 60,
         origin: { x: 0.9, y: 0.7 },
@@ -156,7 +178,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
     onRewardWon(pickedReward, newTickets);
   };
 
-  const handleShareClick = (type: 'whatsapp' | 'instagram' | 'copy' | 'quick', countToAdd = 10) => {
+  const handleShareClick = (type: 'whatsapp' | 'instagram' | 'copy') => {
     const baseUrl = window.location.origin;
     const refCode = devoteeProfile?.referralCode || 'KRISHNA-UTLOTSAVAM';
     const shareUrl = `${baseUrl}/?ref=${refCode}`;
@@ -168,7 +190,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
     if (type === 'whatsapp') {
       const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
       window.open(whatsappUrl, '_blank');
-      setShareFeedback('Shared on WhatsApp! Pot crack progress increased.');
+      setShareFeedback('Shared on WhatsApp! Pot crack progress updated.');
     } else if (type === 'instagram') {
       navigator.clipboard.writeText(shareText);
       setCopied(true);
@@ -179,12 +201,12 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
       navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-      setShareFeedback('Referral link copied! Share with your friends.');
-    } else if (type === 'quick') {
-      setShareFeedback(`Shared with ${countToAdd} devotees! Progress boosted.`);
+      setShareFeedback('Referral link copied! Share with friends & family.');
     }
 
-    const nextCount = sharesCount + countToAdd;
+    // Backend increment logic (progressively increases share count on each authentic share action)
+    const increment = sharesCount < 20 ? 10 : sharesCount < 50 ? 15 : sharesCount < 200 ? 50 : 100;
+    const nextCount = sharesCount + increment;
     setSharesCount(nextCount);
     onReferralBoost();
 
@@ -221,7 +243,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
     setIsShaking(true);
     playPotTap(1, !soundEnabled);
     setTimeout(() => setIsShaking(false), 300);
-    setShareFeedback('Share with friends below to soften the pot and reach 100%!');
+    setShareFeedback('Share with friends below using WhatsApp or Instagram to soften the pot and reach 100%!');
   };
 
   const copyVoucher = () => {
@@ -263,6 +285,15 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {claimedPots.length > 0 && (
+              <button
+                onClick={onOpenMyPots}
+                className="px-3 py-1.5 rounded-xl bg-[#14224A] hover:bg-[#1B7A6E]/40 border border-[#E8B923]/40 text-xs font-bold text-[#E8B923] flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>My Pots ({claimedPots.length})</span>
+              </button>
+            )}
             <span className="text-xs text-emerald-300 font-semibold px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               <span>{isShatterReady ? 'Ready to Shatter 💥' : 'Ready to Crack'}</span>
@@ -310,7 +341,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
           </div>
         </div>
 
-        {/* Controls */}
+        {/* Both Variant Tabs */}
         <div className="flex items-center gap-2.5">
           <div className="bg-[#0B1230] p-1 rounded-xl border border-[#E8B923]/30 flex items-center">
             <button
@@ -322,7 +353,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   : 'text-[#F6EEDD]/70 hover:text-white'
               }`}
             >
-              Venna Kunda
+              Venna Kunda (1x Ticket)
             </button>
             <button
               id="tab-pot-uyyala"
@@ -333,7 +364,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
                   : 'text-[#F6EEDD]/70 hover:text-white'
               }`}
             >
-              Uyyala Kunda (Royal)
+              Uyyala Kunda (3x Tickets)
             </button>
           </div>
 
@@ -696,7 +727,7 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
         )}
       </div>
 
-      {/* BELOW KUNDA POT: CLEAN SHARE ICONS & QUICK BOOST BUTTONS */}
+      {/* BELOW KUNDA POT: CLEAN SHARE ICONS (WhatsApp, Instagram, Copy Link) */}
       {!isCracked && (
         <div className="mt-4 pt-4 border-t border-[#E8B923]/25 space-y-3">
           <div className="text-center">
@@ -706,12 +737,12 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
           </div>
 
           {/* Primary Share Icons */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* WhatsApp Share */}
             <button
               id="btn-share-whatsapp-clean"
-              onClick={() => handleShareClick('whatsapp', 10)}
-              className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-[#0B1230] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
+              onClick={() => handleShareClick('whatsapp')}
+              className="py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-[#0B1230] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
             >
               <WhatsAppIcon className="w-5 h-5 text-[#0B1230]" />
               <span>Share on WhatsApp</span>
@@ -720,8 +751,8 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
             {/* Instagram Share */}
             <button
               id="btn-share-instagram-clean"
-              onClick={() => handleShareClick('instagram', 10)}
-              className="py-3 px-4 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
+              onClick={() => handleShareClick('instagram')}
+              className="py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] hover:brightness-110 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all cursor-pointer"
             >
               <InstagramIcon className="w-5 h-5 text-white" />
               <span>Share on Instagram</span>
@@ -730,70 +761,70 @@ export const CrackGameEngine: React.FC<CrackGameEngineProps> = ({
             {/* Copy Link */}
             <button
               id="btn-share-copy-clean"
-              onClick={() => handleShareClick('copy', 10)}
-              className="py-3 px-4 rounded-xl bg-[#080E24] hover:bg-[#14224A] border border-[#E8B923]/40 text-[#E8B923] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
+              onClick={() => handleShareClick('copy')}
+              className="py-3.5 px-4 rounded-xl bg-[#080E24] hover:bg-[#14224A] border border-[#E8B923]/40 text-[#E8B923] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? 'Link Copied!' : 'Copy Share Link'}</span>
             </button>
           </div>
+        </div>
+      )}
 
-          {/* Quick Share with Devotee Groups (10, 20, 50, 200, 500, 800, 1000 members) */}
-          <div className="pt-2">
-            <div className="text-[11px] text-[#F6EEDD]/70 text-center mb-2">
-              Quick Share Options:
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
-              <button
-                onClick={() => handleShareClick('quick', 10)}
-                className="py-1.5 px-2 rounded-lg bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-[11px] font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-              >
-                <Share2 className="w-3 h-3" />
-                <span>10 Members</span>
-              </button>
-              <button
-                onClick={() => handleShareClick('quick', 20)}
-                className="py-1.5 px-2 rounded-lg bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-[11px] font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-              >
-                <Share2 className="w-3 h-3" />
-                <span>20 Members</span>
-              </button>
-              <button
-                onClick={() => handleShareClick('quick', 50)}
-                className="py-1.5 px-2 rounded-lg bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-[11px] font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-              >
-                <Share2 className="w-3 h-3" />
-                <span>50 Members</span>
-              </button>
-              <button
-                onClick={() => handleShareClick('quick', 200)}
-                className="py-1.5 px-2 rounded-lg bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-[11px] font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-              >
-                <Share2 className="w-3 h-3" />
-                <span>200 Members</span>
-              </button>
-              <button
-                onClick={() => handleShareClick('quick', 500)}
-                className="py-1.5 px-2 rounded-lg bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-[11px] font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-              >
-                <Share2 className="w-3 h-3" />
-                <span>500 Members</span>
-              </button>
-              <button
-                onClick={() => handleShareClick('quick', 800)}
-                className="py-1.5 px-2 rounded-lg bg-[#14224A] hover:bg-[#1B7A6E]/30 border border-[#E8B923]/30 text-[#E8B923] text-[11px] font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-              >
-                <Share2 className="w-3 h-3" />
-                <span>800 Members</span>
-              </button>
-              <button
-                onClick={() => handleShareClick('quick', 1000)}
-                className="py-1.5 px-2 rounded-lg bg-gradient-to-r from-[#E8B923] to-[#FFE27A] text-[#0B1230] text-[11px] font-black flex items-center justify-center gap-1 cursor-pointer shadow transition-all hover:brightness-105"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>1000 Mega 💥</span>
-              </button>
-            </div>
+      {/* QUICK 'MY POTS' DRAWER IF CLAIMED IN THIS BROWSER */}
+      {claimedPots.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-[#E8B923]/20">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-[#E8B923] uppercase tracking-wider flex items-center gap-1.5">
+              <Layers className="w-4 h-4" />
+              <span>Your Claimed Pots ({claimedPots.length})</span>
+            </span>
+            <button
+              onClick={onOpenMyPots}
+              className="text-xs text-[#F6EEDD]/80 hover:text-[#E8B923] underline cursor-pointer"
+            >
+              View All &amp; Details
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {claimedPots.map((p) => {
+              const pTier = POT_TIERS[p.potId];
+              const pPct = calculatePotCrackPercentage(p.sharesCount || 0);
+              const isCurr = activePotId === p.potId;
+
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => onSelectPot(p.potId)}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-2 ${
+                    isCurr
+                      ? 'bg-[#14224A] border-[#E8B923] ring-1 ring-[#E8B923]'
+                      : 'bg-[#080E24]/70 border-[#E8B923]/20 hover:border-[#E8B923]/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <NemaliIcon className="w-6 h-6 text-[#E8B923] shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-white block">
+                        {pTier.name}
+                      </span>
+                      <span className="text-[10px] text-[#E8B923]">
+                        {p.tickets.length} Draw {p.tickets.length > 1 ? 'Tickets' : 'Ticket'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                    p.isCracked
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-[#E8B923]/20 text-[#E8B923]'
+                  }`}>
+                    {p.isCracked ? 'Cracked 🎉' : `${pPct}% Soft`}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

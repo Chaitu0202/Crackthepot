@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { DevoteeProfile, PotId, POT_TIERS, InstantReward } from './types';
+import { DevoteeProfile, PotId, POT_TIERS, InstantReward, ClaimedPotInstance } from './types';
 import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { PotCard3D } from './components/PotCard3D';
@@ -16,6 +16,7 @@ import { PotCrackersLiveTicker } from './components/PotCrackersLiveTicker';
 import { Footer } from './components/Footer';
 import { TermsModal } from './components/TermsModal';
 import { ClaimPotModal } from './components/ClaimPotModal';
+import { MyPotsModal } from './components/MyPotsModal';
 import { ThankYouPage } from './components/ThankYouPage';
 import { Sparkles } from 'lucide-react';
 import { RangoliDivider } from './components/SvgMotifs';
@@ -30,6 +31,7 @@ export default function App() {
   });
   const [isTermsOpen, setIsTermsOpen] = useState<boolean>(false);
   const [isClaimModalOpen, setIsClaimModalOpen] = useState<boolean>(false);
+  const [isMyPotsOpen, setIsMyPotsOpen] = useState<boolean>(false);
 
   // Devotee profile state with local persistence
   const [devoteeProfile, setDevoteeProfile] = useState<DevoteeProfile | null>(() => {
@@ -38,6 +40,38 @@ export default function App() {
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
+    }
+  });
+
+  // Claimed Pots collection persisted in this browser
+  const [claimedPots, setClaimedPots] = useState<ClaimedPotInstance[]>(() => {
+    try {
+      const saved = localStorage.getItem('krishna_claimed_pots');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      // If devoteeProfile already exists, create default claimed pot
+      const devoteeSaved = localStorage.getItem('krishna_pot_devotee');
+      if (devoteeSaved) {
+        const parsedDev = JSON.parse(devoteeSaved);
+        const defaultPot: ClaimedPotInstance = {
+          id: `pot-${Date.now()}`,
+          potId: parsedDev.selectedPot || 'uyyala',
+          devoteeName: parsedDev.name,
+          phone: parsedDev.phone,
+          city: parsedDev.city,
+          tickets: parsedDev.tickets || ['GPD-2026-883921', 'GPD-2026-104928'],
+          claimedAt: parsedDev.registeredAt || new Date().toISOString(),
+          sharesCount: 0,
+          isCracked: false,
+          wonReward: parsedDev.claimedReward,
+        };
+        return [defaultPot];
+      }
+      return [];
+    } catch {
+      return [];
     }
   });
 
@@ -67,15 +101,28 @@ export default function App() {
     setIsClaimModalOpen(true);
   };
 
-  const handleProfileSubmitted = (profile: DevoteeProfile) => {
+  const handleProfileSubmitted = (profile: DevoteeProfile, newPotInstance: ClaimedPotInstance) => {
     setDevoteeProfile(profile);
     setSelectedPotId(profile.selectedPot);
     setUserTickets((prev) => Array.from(new Set([...prev, ...profile.tickets])));
+
+    setClaimedPots((prev) => {
+      const filtered = prev.filter((p) => p.potId !== newPotInstance.potId);
+      const updated = [newPotInstance, ...filtered];
+      try {
+        localStorage.setItem('krishna_claimed_pots', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+
     try {
       localStorage.setItem('krishna_pot_devotee', JSON.stringify(profile));
     } catch {
       // ignore
     }
+
     setIsClaimModalOpen(false);
     setCurrentView('thankyou');
   };
@@ -106,6 +153,26 @@ export default function App() {
         // ignore
       }
     }
+
+    setClaimedPots((prev) => {
+      const updated = prev.map((p) => {
+        if (p.potId === selectedPotId) {
+          return {
+            ...p,
+            isCracked: true,
+            wonReward: reward,
+            tickets: Array.from(new Set([...(p.tickets || []), ...tickets])),
+          };
+        }
+        return p;
+      });
+      try {
+        localStorage.setItem('krishna_claimed_pots', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
   };
 
   const handleAddBonusTicket = (ticket: string) => {
@@ -125,11 +192,23 @@ export default function App() {
     }
   };
 
+  const handleSelectAndCrackPot = (potInst: ClaimedPotInstance) => {
+    setSelectedPotId(potInst.potId);
+    if (currentView === 'thankyou') {
+      setCurrentView('dashboard');
+    }
+    setTimeout(() => {
+      scrollToSection('crack-interactive-arena');
+    }, 150);
+  };
+
   return (
     <div className="min-h-screen bg-[#080E24] text-[#F6EEDD] flex flex-col relative selection:bg-[#E8B923]/30 selection:text-[#E8B923]">
       {/* Top Navbar */}
       <Navbar
         ticketCount={userTickets.length}
+        claimedPotsCount={claimedPots.length}
+        onOpenMyPots={() => setIsMyPotsOpen(true)}
         soundEnabled={soundEnabled}
         onToggleSound={() => setSoundEnabled(!soundEnabled)}
         onOpenRules={() => setIsTermsOpen(true)}
@@ -148,12 +227,14 @@ export default function App() {
             potId={selectedPotId}
             devoteeProfile={devoteeProfile}
             userTickets={userTickets}
+            claimedPots={claimedPots}
             onGoToDashboard={() => {
               setCurrentView('dashboard');
               setTimeout(() => {
                 scrollToSection('crack-interactive-arena');
               }, 150);
             }}
+            onOpenMyPots={() => setIsMyPotsOpen(true)}
             soundEnabled={soundEnabled}
           />
           <Footer onOpenTerms={() => setIsTermsOpen(true)} />
@@ -213,18 +294,20 @@ export default function App() {
             </div>
           </section>
 
-          {/* 3. THE CRACK MECHANIC (Interactive 3-Strike + Referral Boost Arena) */}
+          {/* 3. THE CRACK MECHANIC (Interactive Clean Arena with Share Options) */}
           <section className="py-12 px-4 sm:px-6 lg:px-8 w-full" ref={crackArenaRef}>
             <CrackGameEngine
               activePotId={selectedPotId}
               onSelectPot={(id) => setSelectedPotId(id)}
               devoteeProfile={devoteeProfile}
+              claimedPots={claimedPots}
               onRequestClaim={(potId) => handleOpenClaimModal(potId || selectedPotId)}
               onRewardWon={handleRewardWon}
               onReferralBoost={() => {
                 const bonus = `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
                 handleAddBonusTicket(bonus);
               }}
+              onOpenMyPots={() => setIsMyPotsOpen(true)}
               soundEnabled={soundEnabled}
               onToggleSound={() => setSoundEnabled(!soundEnabled)}
             />
@@ -264,13 +347,24 @@ export default function App() {
         onClose={() => setIsTermsOpen(false)}
       />
 
-      {/* DEVOTEE CLAIM POT MODAL */}
+      {/* DEVOTEE CLAIM POT MODAL (Renders both variants in rich detail) */}
       <ClaimPotModal
         isOpen={isClaimModalOpen}
         onClose={() => setIsClaimModalOpen(false)}
-        selectedPotId={selectedPotId}
-        onSubmitProfile={handleProfileSubmitted}
+        selectedPot={selectedPotId}
+        onSelectPotChange={(id) => setSelectedPotId(id)}
+        onProfileCreated={handleProfileSubmitted}
         soundEnabled={soundEnabled}
+      />
+
+      {/* MY POTS MODAL (Browser-persisted pots management) */}
+      <MyPotsModal
+        isOpen={isMyPotsOpen}
+        onClose={() => setIsMyPotsOpen(false)}
+        claimedPots={claimedPots}
+        activePotId={selectedPotId}
+        onSelectAndCrackPot={handleSelectAndCrackPot}
+        onClaimNewPot={() => handleOpenClaimModal()}
       />
     </div>
   );

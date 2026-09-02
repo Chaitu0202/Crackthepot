@@ -1,9 +1,11 @@
 import React from 'react';
-import { Volume2, VolumeX, Ticket, Sparkles } from 'lucide-react';
-import { PeacockFeatherIcon, FluteMotif } from './SvgMotifs';
+import { Volume2, VolumeX, Ticket, Sparkles, Layers } from 'lucide-react';
+import { PeacockFeatherIcon, FluteMotif, NemaliIcon } from './SvgMotifs';
 
 interface NavbarProps {
   ticketCount: number;
+  claimedPotsCount: number;
+  onOpenMyPots: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenRules: () => void;
@@ -13,6 +15,8 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   ticketCount,
+  claimedPotsCount,
+  onOpenMyPots,
   soundEnabled,
   onToggleSound,
   onOpenRules,
@@ -23,7 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="fixed top-0 inset-x-0 z-40 bg-[#0B1230]/90 border-b border-[#E8B923]/25 backdrop-blur-md px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between transition-all">
       {/* Brand Mark */}
       <button
-        onClick={() => onNavigateView ? onNavigateView('dashboard') : undefined}
+        onClick={() => (onNavigateView ? onNavigateView('dashboard') : undefined)}
         className="flex items-center gap-3 group text-left cursor-pointer bg-transparent border-0"
       >
         <div className="relative flex items-center justify-center">
@@ -79,8 +83,21 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </nav>
 
-      {/* Right Actions: Sound, Tickets, & Terms */}
-      <div className="flex items-center gap-3">
+      {/* Right Actions: My Pots, Sound, Tickets, & Terms */}
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* MY POTS NAV BUTTON (Browser Persisted) */}
+        <button
+          id="nav-my-pots-btn"
+          onClick={onOpenMyPots}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#1B7A6E]/40 to-[#14224A] hover:brightness-110 border border-[#E8B923]/40 text-xs sm:text-sm text-[#F6EEDD] font-bold cursor-pointer transition-all shadow"
+        >
+          <NemaliIcon className="w-4 h-4 text-[#E8B923]" />
+          <span>My Pots</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-[#E8B923] text-[#0B1230] font-mono text-[10px] font-black">
+            {claimedPotsCount}
+          </span>
+        </button>
+
         {/* Ticket Wallet Pill */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#14224A] border border-[#E8B923]/30 text-xs sm:text-sm text-[#F6EEDD]">
           <Ticket className="w-4 h-4 text-[#E8B923]" />
@@ -100,7 +117,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Rules Button */}
         <button
           onClick={onOpenRules}
-          className="hidden sm:block text-xs font-semibold text-[#F6EEDD]/75 hover:text-[#E8B923] underline underline-offset-4 cursor-pointer"
+          className="hidden lg:block text-xs font-semibold text-[#F6EEDD]/75 hover:text-[#E8B923] underline underline-offset-4 cursor-pointer"
         >
           Rules (T&C)
         </button>

@@ -1,27 +1,28 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { DevoteeProfile, PotId } from '../types';
-import { NemaliIcon, PeacockFeatherIcon, FluteMotif, DiyaLamp, RangoliDivider } from './SvgMotifs';
+import { DevoteeProfile, PotId, ClaimedPotInstance, POT_TIERS } from '../types';
+import { NemaliIcon, PeacockFeatherIcon, FluteMotif, DiyaLamp } from './SvgMotifs';
 import { playCelebrationFanfare, playCoinChime, playTempleBell } from '../utils/audio';
+import { calculatePotCrackPercentage } from './CrackGameEngine';
 import {
   Sparkles,
   Trophy,
   Gift,
   CheckCircle2,
   ArrowRight,
-  Flame,
   ShieldCheck,
   Ticket,
   Zap,
-  RotateCcw,
-  Share2
+  Layers
 } from 'lucide-react';
 
 interface ThankYouPageProps {
   potId?: PotId;
   devoteeProfile: DevoteeProfile | null;
   userTickets: string[];
+  claimedPots?: ClaimedPotInstance[];
   onGoToDashboard: () => void;
+  onOpenMyPots?: () => void;
   soundEnabled: boolean;
 }
 
@@ -29,7 +30,9 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
   potId = 'uyyala',
   devoteeProfile,
   userTickets,
+  claimedPots = [],
   onGoToDashboard,
+  onOpenMyPots,
   soundEnabled,
 }) => {
   const isUyyala = potId === 'uyyala';
@@ -43,7 +46,7 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
   useEffect(() => {
     const originalTitle = document.title;
     document.title = 'Thank You — Crack Your Pot';
-    
+
     // Play celebratory chime & shower confetti on entrance
     if (soundEnabled) {
       playTempleBell();
@@ -97,7 +100,6 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
       </div>
 
       <div className="max-w-3xl mx-auto w-full relative z-10 my-auto text-center space-y-8 animate-in fade-in zoom-in-95 duration-500">
-        
         {/* Sacred Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E8B923]/15 border border-[#E8B923]/40 text-[#E8B923] text-xs sm:text-sm font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(232,185,35,0.2)]">
           <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
@@ -170,7 +172,9 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
                 <Ticket className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-xs font-bold text-white block">3x Lucky Tickets</span>
+                <span className="text-xs font-bold text-white block">
+                  {isUyyala ? '3x Lucky Tickets' : '1x Lucky Ticket'}
+                </span>
                 <span className="text-[11px] text-[#F6EEDD]/70">Grand Prize Draw</span>
               </div>
             </div>
@@ -190,8 +194,12 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
                 <Zap className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-xs font-bold text-white block">Royal Multiplier</span>
-                <span className="text-[11px] text-[#F6EEDD]/70">Maximum Reward Tier</span>
+                <span className="text-xs font-bold text-white block">
+                  {isUyyala ? 'Royal Multiplier' : 'Auspicious Start'}
+                </span>
+                <span className="text-[11px] text-[#F6EEDD]/70">
+                  {isUyyala ? 'Maximum Reward Tier' : 'A2 Cow Ghee Perk'}
+                </span>
               </div>
             </div>
           </div>
@@ -235,12 +243,65 @@ export const ThankYouPage: React.FC<ThankYouPageProps> = ({
           </div>
         </div>
 
+        {/* YOUR CLAIMED POTS IN THIS BROWSER (Right below buying/claiming pots) */}
+        {claimedPots.length > 0 && (
+          <div className="rounded-3xl bg-[#080E24]/90 border border-[#E8B923]/30 p-5 sm:p-6 text-left">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#E8B923]" />
+                <h4 className="text-base sm:text-lg font-serif font-bold text-white">
+                  Your Claimed Pots in this Browser ({claimedPots.length})
+                </h4>
+              </div>
+
+              {onOpenMyPots && (
+                <button
+                  onClick={onOpenMyPots}
+                  className="text-xs text-[#E8B923] font-bold hover:underline cursor-pointer"
+                >
+                  Manage All Pots &rarr;
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {claimedPots.map((p) => {
+                const tier = POT_TIERS[p.potId];
+                const pct = calculatePotCrackPercentage(p.sharesCount || 0);
+
+                return (
+                  <div
+                    key={p.id}
+                    onClick={onGoToDashboard}
+                    className="p-3.5 rounded-2xl bg-[#0B1230] border border-[#E8B923]/30 hover:border-[#E8B923] transition-all cursor-pointer flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <NemaliIcon className="w-7 h-7 text-[#E8B923]" />
+                      <div>
+                        <span className="text-sm font-bold text-white block">
+                          {tier.name}
+                        </span>
+                        <span className="text-[11px] text-[#E8B923]">
+                          {p.tickets.length} Draw Tickets (#GPD-2026)
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-[#E8B923]/20 text-[#E8B923] font-bold border border-[#E8B923]/40">
+                      {p.isCracked ? 'Cracked 🎉' : `${pct}% Soft`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Footer info */}
         <div className="text-xs text-[#F6EEDD]/50 space-y-1">
           <p>Sri Krishna Janmashtami &bull; Utlotsavam 2026 Celebration</p>
           <p>Need assistance or have questions? Contact support via WhatsApp or email.</p>
         </div>
-
       </div>
     </div>
   );
