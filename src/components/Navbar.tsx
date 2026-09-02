@@ -7,6 +7,8 @@ interface NavbarProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenRules: () => void;
+  currentView?: 'dashboard' | 'thankyou';
+  onNavigateView?: (view: 'dashboard' | 'thankyou') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -14,11 +16,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   soundEnabled,
   onToggleSound,
   onOpenRules,
+  currentView = 'dashboard',
+  onNavigateView,
 }) => {
   return (
     <header className="fixed top-0 inset-x-0 z-40 bg-[#0B1230]/90 border-b border-[#E8B923]/25 backdrop-blur-md px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between transition-all">
       {/* Brand Mark */}
-      <a href="#" className="flex items-center gap-3 group">
+      <button
+        onClick={() => onNavigateView ? onNavigateView('dashboard') : undefined}
+        className="flex items-center gap-3 group text-left cursor-pointer bg-transparent border-0"
+      >
         <div className="relative flex items-center justify-center">
           <PeacockFeatherIcon className="w-8 h-10 filter drop-shadow-[0_0_8px_rgba(232,185,35,0.4)] group-hover:scale-105 transition-transform" />
         </div>
@@ -35,25 +42,41 @@ export const Navbar: React.FC<NavbarProps> = ({
             కుండ పగలగొట్టు &bull; Janmashtami
           </span>
         </div>
-      </a>
+      </button>
 
       {/* Center Nav Links (Desktop) */}
       <nav className="hidden md:flex items-center gap-6 text-xs sm:text-sm font-medium text-[#F6EEDD]/80">
-        <a href="#pots-selection" className="hover:text-[#E8B923] transition-colors">
-          Pick Pot
-        </a>
-        <a href="#crack-interactive-arena" className="hover:text-[#E8B923] transition-colors">
-          Crack Arena
-        </a>
-        <a href="#referral-boost-section" className="hover:text-[#E8B923] transition-colors">
-          Strength Meter
-        </a>
-        <a href="#prize-tiers-section" className="hover:text-[#E8B923] transition-colors">
-          Prize Tiers
-        </a>
-        <a href="#countdown-section" className="hover:text-[#E8B923] transition-colors text-[#E8B923]">
-          180 Winners Draw
-        </a>
+        <button
+          onClick={() => onNavigateView && onNavigateView('dashboard')}
+          className={`hover:text-[#E8B923] transition-colors cursor-pointer ${
+            currentView === 'dashboard' ? 'text-[#E8B923] font-bold' : ''
+          }`}
+        >
+          Dashboard
+        </button>
+        {currentView === 'dashboard' ? (
+          <>
+            <a href="#pots-selection" className="hover:text-[#E8B923] transition-colors">
+              Pick Pot
+            </a>
+            <a href="#crack-interactive-arena" className="hover:text-[#E8B923] transition-colors">
+              Crack Arena
+            </a>
+            <a href="#prize-tiers-section" className="hover:text-[#E8B923] transition-colors">
+              Prize Tiers
+            </a>
+            <a href="#countdown-section" className="hover:text-[#E8B923] transition-colors text-[#E8B923]">
+              180 Winners Draw
+            </a>
+          </>
+        ) : (
+          <button
+            onClick={() => onNavigateView && onNavigateView('thankyou')}
+            className="text-[#E8B923] font-bold cursor-pointer"
+          >
+            Thank You Page
+          </button>
+        )}
       </nav>
 
       {/* Right Actions: Sound, Tickets, & Terms */}

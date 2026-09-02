@@ -1,13 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { PotConfig } from '../types';
+import { PotTier, PotId } from '../types';
 import { PeacockFeatherIcon } from './SvgMotifs';
 import { Sparkles, Check, ArrowRight } from 'lucide-react';
 
 interface PotCard3DProps {
-  pot: PotConfig;
+  pot: PotTier;
   isSelected: boolean;
-  onSelect: (potId: PotConfig['id']) => void;
-  onStartCrack: (potId: PotConfig['id']) => void;
+  onSelect: (potId: PotId) => void;
+  onStartCrack: (potId: PotId) => void;
 }
 
 export const PotCard3D: React.FC<PotCard3DProps> = ({
@@ -24,14 +24,14 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left; // x position within element
-    const y = e.clientY - rect.top;  // y position within element
-    
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
 
-    const rotX = ((y - centerY) / centerY) * -12; // tilt max 12 deg
-    const rotY = ((x - centerX) / centerX) * 14;  // tilt max 14 deg
+    const rotX = ((y - centerY) / centerY) * -10;
+    const rotY = ((x - centerX) / centerX) * 12;
 
     setRotateX(rotX);
     setRotateY(rotY);
@@ -77,7 +77,7 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
 
         {/* Popular / Premium Tier Badge */}
         {isUyyala && (
-          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#C6296F] via-[#E8B923] to-[#C6296F] text-[#0B1230] font-semibold text-xs tracking-wider flex items-center gap-1.5 shadow-md uppercase">
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-gradient-to-r from-[#C6296F] via-[#E8B923] to-[#C6296F] text-[#0B1230] font-black text-[11px] tracking-wider flex items-center gap-1.5 shadow-md uppercase">
             <Sparkles className="w-3.5 h-3.5 text-[#0B1230]" />
             Most Auspicious &bull; 3x Grand Entries
           </div>
@@ -109,7 +109,6 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
               className="w-full h-full drop-shadow-[0_15px_25px_rgba(0,0,0,0.6)]"
             >
               <defs>
-                {/* Terracotta Pot Gradient */}
                 <radialGradient id={`potGrad-${pot.id}`} cx="40%" cy="40%" r="70%">
                   <stop offset="0%" stopColor={isUyyala ? '#B34A26' : '#C85A32'} />
                   <stop offset="60%" stopColor={isUyyala ? '#782813' : '#8F3B1E'} />
@@ -131,17 +130,16 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
               {/* Hanging Strings (for Uyyala Pot) */}
               {isUyyala && (
                 <g opacity="0.85">
-                  <path d="M 40,0 L 70,55" stroke="var(--gold)" strokeWidth="1.8" strokeDasharray="3 2" />
-                  <path d="M 160,0 L 130,55" stroke="var(--gold)" strokeWidth="1.8" strokeDasharray="3 2" />
-                  <path d="M 100,0 L 100,50" stroke="var(--gold)" strokeWidth="1.8" strokeDasharray="3 2" />
-                  {/* Small marigold flower balls on strings */}
-                  <circle cx="70" cy="55" r="4" fill="var(--gold)" />
-                  <circle cx="130" cy="55" r="4" fill="var(--gold)" />
-                  <circle cx="100" cy="50" r="4" fill="var(--rani-pink)" />
+                  <path d="M 40,0 L 70,55" stroke="#E8B923" strokeWidth="1.8" strokeDasharray="3 2" />
+                  <path d="M 160,0 L 130,55" stroke="#E8B923" strokeWidth="1.8" strokeDasharray="3 2" />
+                  <path d="M 100,0 L 100,50" stroke="#E8B923" strokeWidth="1.8" strokeDasharray="3 2" />
+                  <circle cx="70" cy="55" r="4" fill="#E8B923" />
+                  <circle cx="130" cy="55" r="4" fill="#E8B923" />
+                  <circle cx="100" cy="50" r="4" fill="#C6296F" />
                 </g>
               )}
 
-              {/* Main Pot Body (Matka Spherical Bulb) */}
+              {/* Main Pot Body */}
               <ellipse
                 cx="100"
                 cy="135"
@@ -186,59 +184,18 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
 
               {/* Pot Belly Ornate Carvings & Patterns */}
               {isUyyala ? (
-                // Uyyala (Radha-Krishna Peacock & Rani Pink Ornaments)
                 <g>
-                  {/* Waist Band */}
-                  <path
-                    d="M 36,132 Q 100,152 164,132"
-                    stroke="var(--gold)"
-                    strokeWidth="3.5"
-                    fill="none"
-                  />
-                  <path
-                    d="M 40,140 Q 100,160 160,140"
-                    stroke="var(--peacock)"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                  <path
-                    d="M 44,124 Q 100,144 156,124"
-                    stroke="var(--rani-pink)"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-
-                  {/* Sacred Triangle Chevron Pattern */}
-                  <path
-                    d="M 50,135 L 56,145 L 62,135 L 68,145 L 74,135 L 80,145 L 86,135 L 92,145 L 98,135 L 104,145 L 110,135 L 116,145 L 122,135 L 128,145 L 134,135 L 140,145 L 146,135"
-                    stroke="var(--gold)"
-                    strokeWidth="1.5"
-                    fill="none"
-                  />
-
-                  {/* Peacock Medallion in Center */}
-                  <circle cx="100" cy="148" r="14" fill="#1B7A6E" stroke="var(--gold)" strokeWidth="1.5" />
-                  <circle cx="100" cy="148" r="7" fill="var(--rani-pink)" />
-                  <circle cx="100" cy="148" r="3" fill="var(--gold)" />
+                  <path d="M 36,132 Q 100,152 164,132" stroke="#E8B923" strokeWidth="3.5" fill="none" />
+                  <path d="M 40,140 Q 100,160 160,140" stroke="#1B7A6E" strokeWidth="2" fill="none" />
+                  <path d="M 44,124 Q 100,144 156,124" stroke="#C6296F" strokeWidth="2" fill="none" />
+                  <circle cx="100" cy="148" r="14" fill="#1B7A6E" stroke="#E8B923" strokeWidth="1.5" />
+                  <circle cx="100" cy="148" r="7" fill="#C6296F" />
+                  <circle cx="100" cy="148" r="3" fill="#E8B923" />
                 </g>
               ) : (
-                // Venna Kunda (Terracotta & Gold Tribal Lines)
                 <g>
-                  <path
-                    d="M 38,134 Q 100,154 162,134"
-                    stroke="var(--gold)"
-                    strokeWidth="2.5"
-                    fill="none"
-                  />
-                  <path
-                    d="M 46,126 Q 100,144 154,126"
-                    stroke="#F6EEDD"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 3"
-                    fill="none"
-                  />
-                  {/* Central Sun / Tilak stamp */}
-                  <circle cx="100" cy="144" r="9" fill="var(--gold)" opacity="0.9" />
+                  <path d="M 38,134 Q 100,154 162,134" stroke="#E8B923" strokeWidth="2.5" fill="none" />
+                  <circle cx="100" cy="144" r="9" fill="#E8B923" opacity="0.9" />
                   <circle cx="100" cy="144" r="5" fill="#8F3B1E" />
                 </g>
               )}
@@ -256,11 +213,11 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
           </div>
         </div>
 
-        {/* Card Header & Pricing */}
+        {/* Card Header & Description */}
         <div className="text-center mt-2">
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-xs text-[#E8B923] tracking-wider uppercase font-semibold">
-              {pot.tierName}
+              {pot.badge}
             </span>
           </div>
 
@@ -268,26 +225,26 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
             {pot.name}
           </h3>
           <p className="font-telugu text-base text-[#E8B923]/90 font-medium">
-            {pot.teluguName}
+            {pot.nameTelugu}
           </p>
 
-          <div className="flex items-baseline justify-center gap-1.5 my-3">
-            <span className="text-3xl sm:text-4xl font-extrabold text-[#E8B923] font-serif">
-              ₹{pot.price}
+          <div className="flex items-center justify-center gap-2 my-2.5">
+            <span className="px-3.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black tracking-wider uppercase">
+              100% Free Celebration
             </span>
-            <span className="text-xs text-[#F6EEDD]/60 uppercase tracking-wider">
-              / per pot
+            <span className="text-xs text-[#F6EEDD]/75 font-medium">
+              &bull; {pot.drawEntries}x Grand Draw {pot.drawEntries > 1 ? 'Entries' : 'Entry'}
             </span>
           </div>
 
-          <p className="text-sm text-[#F6EEDD]/90 font-medium min-h-[40px] px-2">
-            &ldquo;{pot.rewardHint}&rdquo;
+          <p className="text-xs sm:text-sm text-[#F6EEDD]/85 min-h-[36px] px-2 leading-relaxed">
+            {pot.description}
           </p>
         </div>
 
         {/* Feature Points */}
         <div className="mt-4 pt-4 border-t border-[#E8B923]/20 space-y-2 text-xs sm:text-sm text-[#F6EEDD]/80">
-          {pot.features.map((feat, idx) => (
+          {pot.perks.map((feat, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-[#1B7A6E]/30 text-[#E8B923] flex items-center justify-center shrink-0">
                 <Check className="w-3 h-3 stroke-[3]" />
@@ -305,13 +262,13 @@ export const PotCard3D: React.FC<PotCard3DProps> = ({
               e.stopPropagation();
               onStartCrack(pot.id);
             }}
-            className={`w-full py-3.5 px-6 rounded-xl font-semibold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer shadow-lg ${
+            className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer shadow-lg ${
               isUyyala
-                ? 'bg-gradient-to-r from-[#E8B923] via-[#C6296F] to-[#E8B923] text-white hover:brightness-110 active:scale-[0.98]'
-                : 'bg-gradient-to-r from-[#E8B923] to-[#B8860B] text-[#0B1230] hover:brightness-105 active:scale-[0.98]'
+                ? 'bg-gradient-to-r from-[#C6296F] via-[#E8B923] to-[#C6296F] text-white hover:brightness-110 active:scale-[0.98]'
+                : 'bg-gradient-to-r from-[#E8B923] via-[#FFE27A] to-[#E8B923] text-[#0B1230] hover:brightness-105 active:scale-[0.98]'
             }`}
           >
-            <span>Offer ₹{pot.price} & Crack {pot.name}</span>
+            <span>Crack {isUyyala ? 'Uyyala Kunda' : 'Venna Kunda'} (Free)</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

@@ -1,26 +1,40 @@
 import React, { useState } from 'react';
-import { Share2, Users, Copy, Check, Sparkles, UserPlus, Flame, Gift } from 'lucide-react';
-import { ReferralFriend } from '../types';
-import { RangoliDivider, WhatsAppIcon, InstagramIcon } from './SvgMotifs';
+import { Share2, Users, Copy, Check, Sparkles, UserPlus, Flame, Gift, Ticket, Trophy, Zap, ShieldCheck } from 'lucide-react';
+import { DevoteeProfile } from '../types';
+import { RangoliDivider, WhatsAppIcon, InstagramIcon, PeacockFeatherIcon } from './SvgMotifs';
+import { playTempleBell, playCoinChime } from '../utils/audio';
 
 interface ReferralBoostProps {
+  devoteeProfile: DevoteeProfile | null;
   userTickets: string[];
   onAddBonusTicket: (newTicket: string) => void;
+  soundEnabled: boolean;
+}
+
+interface BoostFriend {
+  id: string;
+  name: string;
+  avatarColor: string;
+  boostAdded: number;
+  timeAgo: string;
 }
 
 export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
+  devoteeProfile,
   userTickets,
   onAddBonusTicket,
+  soundEnabled,
 }) => {
   const [copied, setCopied] = useState(false);
-  const [strength, setStrength] = useState(50); // Initial 50%
-  const [friends, setFriends] = useState<ReferralFriend[]>([
-    { id: '1', name: 'Ravi Teja', avatarColor: '#1B7A6E', boostAdded: 20, timeAgo: '2m ago' },
-    { id: '2', name: 'Ananya S.', avatarColor: '#C6296F', boostAdded: 20, timeAgo: '12m ago' },
+  const [strength, setStrength] = useState(65);
+  const [friends, setFriends] = useState<BoostFriend[]>([
+    { id: '1', name: 'Ravi Teja', avatarColor: '#1B7A6E', boostAdded: 25, timeAgo: '2m ago' },
+    { id: '2', name: 'Ananya S.', avatarColor: '#C6296F', boostAdded: 25, timeAgo: '8m ago' },
+    { id: '3', name: 'Karthik Varma', avatarColor: '#E8B923', boostAdded: 25, timeAgo: '15m ago' },
   ]);
 
-  const referralCode = 'KRISHNA-LUCKY-7729';
-  const referralUrl = `${window.location.origin}/#crack-interactive-arena?ref=${referralCode}`;
+  const refCode = devoteeProfile?.referralCode || 'KRISHNA-UTLOTSAVAM-7729';
+  const referralUrl = `${window.location.origin}/?ref=${refCode}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralUrl);
@@ -36,22 +50,29 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
       'Divya Reddy',
       'Gopal Krishna',
       'Kavitha M.',
+      'Bhavani Shankar',
+      'Manasa B.',
     ];
     const randomName = friendNames[Math.floor(Math.random() * friendNames.length)];
-    const avatarColors = ['#1B7A6E', '#C6296F', '#E8B923', '#8F3B1E'];
+    const avatarColors = ['#1B7A6E', '#C6296F', '#E8B923', '#8F3B1E', '#B8860B'];
     const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
 
-    const newStrength = Math.min(strength + 20, 100);
+    const newStrength = Math.min(strength + 15, 100);
     setStrength(newStrength);
 
-    const newFriend: ReferralFriend = {
+    const newFriend: BoostFriend = {
       id: Date.now().toString(),
       name: randomName,
       avatarColor: randomColor,
-      boostAdded: 20,
+      boostAdded: 25,
       timeAgo: 'Just now',
     };
     setFriends([newFriend, ...friends]);
+
+    if (soundEnabled) {
+      playTempleBell();
+      playCoinChime();
+    }
 
     // Mint an extra Grand Draw Ticket!
     const bonusTicket = `GPD-2026-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -59,14 +80,16 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
   };
 
   const shareOnWhatsApp = () => {
+    const devoteeName = devoteeProfile?.name || 'Devotee';
     const text = encodeURIComponent(
-      `🦚 Help me crack the Krishna Janmashtami Pot to win the ₹1,000 Grand Cash Prize! Tap here to crack yours & enter the 180 Pot Crackers Draw: ${referralUrl}`
+      `🦚 Sri Krishna Janmashtami Utlotsavam 2026!\nJoin ${devoteeName} in cracking the sacred pot to win Instant Sweets Hampers & enter the ₹1,000 Cash Draw (180 Winners)!\n\nClaim your free pot here: ${referralUrl}\n#KrishnaJanmashtami #CrackYourPot #Utlotsavam`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
   const shareOnInstagram = () => {
-    const text = `🦚 Help me crack the Krishna Janmashtami Pot to win the ₹1,000 Grand Cash Prize! Tap here to crack yours & enter the 180 Pot Crackers Draw: ${referralUrl}`;
+    const devoteeName = devoteeProfile?.name || 'Devotee';
+    const text = `🦚 Sri Krishna Janmashtami Utlotsavam 2026!\nJoin ${devoteeName} in cracking the sacred pot to win Instant Sweets Hampers & enter the ₹1,000 Cash Draw (180 Winners)!\n\nClaim your free pot here: ${referralUrl}\n#KrishnaJanmashtami #CrackYourPot`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -76,20 +99,20 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
   return (
     <section
       id="referral-boost-section"
-      className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto"
+      className="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-[#F6EEDD]"
     >
       <div className="text-center mb-10">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1B7A6E]/20 border border-[#1B7A6E]/50 text-[#E8B923] text-xs font-semibold uppercase tracking-wider mb-3">
           <Users className="w-3.5 h-3.5 text-[#1B7A6E]" />
-          <span>WhatsApp & Instagram Synergy</span>
+          <span>Refer &amp; Multiply Grand Draw Entries</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#F6EEDD]">
-          Social Boost &bull; <span className="text-[#E8B923]">Strength Meter</span>
+          Devotee Referral Hub &bull; <span className="text-[#E8B923]">Strength Meter</span>
         </h2>
         <p className="mt-2 text-sm sm:text-base text-[#F6EEDD]/80 max-w-xl mx-auto">
-          Share your pot link to soften the sacred clay and gather devotee strike power. Every friend who joins grants you{' '}
-          <span className="text-[#E8B923] font-semibold">+1 Devotee Strike Boost</span> and{' '}
-          <span className="text-[#C6296F] font-semibold">+1 Free Grand Prize Draw Entry</span>!
+          Share your custom referral link with family &amp; friends. Every friend who joins grants you{' '}
+          <span className="text-[#E8B923] font-bold">+25 Devotee Strike Boost</span> and{' '}
+          <span className="text-[#C6296F] font-bold">+1 Bonus Grand Draw Ticket</span>!
         </p>
       </div>
 
@@ -104,8 +127,8 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
                   Pot Crack Strength Meter
                 </h3>
               </div>
-              <span className="px-3 py-1 rounded-full bg-[#E8B923]/20 border border-[#E8B923]/40 text-[#E8B923] font-bold text-sm">
-                Devotee Energy Meter
+              <span className="px-3 py-1 rounded-full bg-[#E8B923]/20 border border-[#E8B923]/40 text-[#E8B923] font-bold text-xs sm:text-sm">
+                {strength}% Devotee Energy
               </span>
             </div>
 
@@ -115,7 +138,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
                 className="h-full rounded-full bg-gradient-to-r from-[#1B7A6E] via-[#E8B923] to-[#C6296F] transition-all duration-500 relative flex items-center justify-end pr-2"
                 style={{ width: `${strength}%` }}
               >
-                {strength >= 20 && (
+                {strength >= 25 && (
                   <span className="text-[10px] text-[#0B1230] font-black uppercase tracking-tighter">
                     🔥 STRIKE ENERGY
                   </span>
@@ -125,15 +148,15 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
 
             {/* Milestones */}
             <div className="flex justify-between text-xs text-[#F6EEDD]/60 mt-1 px-1">
-              <span>Initial Strikes</span>
-              <span>Devotee Circle</span>
-              <span className="text-[#E8B923] font-semibold">Mega Shatter 💥</span>
+              <span>Initial Test</span>
+              <span>Squad Level</span>
+              <span className="text-[#E8B923] font-semibold">100% Mega Shatter 💥</span>
             </div>
 
             {/* Friends who helped live feed */}
             <div className="mt-6 pt-5 border-t border-[#E8B923]/20">
               <h4 className="text-xs font-semibold text-[#E8B923] uppercase tracking-wider mb-3">
-                Recent Boosts from Friends ({friends.length})
+                Recent Referral Boosts ({friends.length})
               </h4>
               <div className="space-y-2.5 max-h-44 overflow-y-auto pr-1">
                 {friends.map((friend) => (
@@ -155,7 +178,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
                     </div>
                     <div className="flex items-center gap-1.5 text-[#E8B923] font-semibold">
                       <Sparkles className="w-3.5 h-3.5" />
-                      <span>+{friend.boostAdded} Strike Boost (+1 Entry)</span>
+                      <span>+{friend.boostAdded} Strike Energy (+1 Draw Ticket)</span>
                     </div>
                   </div>
                 ))}
@@ -168,10 +191,10 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
             <button
               id="btn-simulate-referral"
               onClick={simulateFriendBoost}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#1B7A6E] hover:bg-[#1B7A6E]/80 text-[#F6EEDD] font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow"
+              className="w-full py-3 px-4 rounded-xl bg-[#1B7A6E] hover:bg-[#1B7A6E]/80 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow"
             >
               <UserPlus className="w-4 h-4" />
-              <span>Simulate Friend Tap (+20% Boost & +1 Draw Ticket)</span>
+              <span>Simulate Friend Invite (+25% Energy &amp; +1 Grand Draw Ticket)</span>
             </button>
           </div>
         </div>
@@ -182,11 +205,11 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
             <div className="flex items-center gap-2 mb-2">
               <Share2 className="w-5 h-5 text-[#C6296F]" />
               <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#F6EEDD]">
-                Your Unique Invite Link
+                Your Custom Referral Link
               </h3>
             </div>
             <p className="text-xs sm:text-sm text-[#F6EEDD]/75 mb-4">
-              Share on WhatsApp and Instagram stories. When friends open it, your pot gains crack power instantly!
+              Share on WhatsApp and Instagram stories. When friends join, you earn bonus Grand Draw tickets automatically!
             </p>
 
             {/* Link Box */}
@@ -224,7 +247,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white font-bold text-sm flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all cursor-pointer shadow-md"
               >
                 <InstagramIcon className="w-4 h-4 text-white" />
-                <span>Share via Instagram (Copy & Open)</span>
+                <span>Share via Instagram (Copy &amp; Open)</span>
               </button>
 
               <button
@@ -232,7 +255,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
                 className="w-full py-2.5 px-4 rounded-xl bg-[#0B1230] border border-[#E8B923]/30 text-[#F6EEDD] font-medium text-xs flex items-center justify-center gap-2 hover:bg-[#14224A] transition-all cursor-pointer"
               >
                 <Copy className="w-3.5 h-3.5 text-[#E8B923]" />
-                <span>Copy Referral Code ({referralCode})</span>
+                <span>Copy Referral Code ({refCode})</span>
               </button>
             </div>
           </div>
@@ -241,7 +264,7 @@ export const ReferralBoostSection: React.FC<ReferralBoostProps> = ({
           <div className="mt-6 p-4 rounded-xl bg-[#0B1230]/80 border border-[#E8B923]/25">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Gift className="w-4 h-4 text-[#E8B923]" />
+                <Ticket className="w-4 h-4 text-[#E8B923]" />
                 <span className="text-xs font-semibold text-[#F6EEDD]">Your Grand Draw Tickets:</span>
               </div>
               <span className="text-base font-extrabold text-[#E8B923] font-mono">

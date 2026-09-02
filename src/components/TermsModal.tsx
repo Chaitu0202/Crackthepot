@@ -36,10 +36,10 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
           </div>
           <div>
             <h3 className="text-2xl font-serif font-bold text-[#F6EEDD]">
-              Terms & Conditions &bull; నిబంధనలు
+              Terms &amp; Conditions &bull; నిబంధనలు
             </h3>
             <p className="text-xs text-[#E8B923]">
-              Krishna Janmashtami "Crack Your Pot" Campaign 2026
+              Krishna Janmashtami &ldquo;Crack Your Pot&rdquo; Campaign 2026
             </p>
           </div>
         </div>
@@ -50,10 +50,10 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
           <div className="p-3.5 rounded-xl bg-[#0B1230]/70 border border-[#E8B923]/20">
             <h4 className="font-semibold text-[#E8B923] text-sm mb-1 flex items-center gap-1.5">
               <FileText className="w-4 h-4" />
-              1. Campaign Duration & Eligibility
+              1. Campaign Duration &amp; Eligibility
             </h4>
             <p>
-              The "Crack Your Pot" (కుండ పగలగొట్టు) festive campaign is open to all residents of India aged 18 and above. The campaign runs until 10th September 2026, 11:59 PM IST.
+              The &ldquo;Crack Your Pot&rdquo; (కుండ పగలగొట్టు) festive campaign is open to all residents of India aged 18 and above. The campaign runs until 10th September 2026, 11:59 PM IST.
             </p>
           </div>
 
@@ -72,10 +72,10 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
           <div className="p-3.5 rounded-xl bg-[#0B1230]/70 border border-[#E8B923]/20">
             <h4 className="font-semibold text-[#E8B923] text-sm mb-1 flex items-center gap-1.5">
               <CheckCircle className="w-4 h-4 text-green-400" />
-              3. Voucher Redemption & Expiry
+              3. Voucher Redemption &amp; Expiry
             </h4>
             <p>
-              All discount vouchers, sample kits, and cashback codes obtained from Venna Kunda (₹5) or Uyyala Kunda (₹9) are valid for 30 days from date of issue and redeemable once per user on participating partner stores.
+              All discount vouchers, sample kits, and cashback codes obtained from Venna Kunda (Casual) or Uyyala Kunda (Royal) are valid for 30 days from date of issue and redeemable once per user on participating partner stores.
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
               4. Grand Prize Draw Mechanism
             </h4>
             <p>
-              Grand prize winners are selected via an automated cryptographically verifiable pseudorandom algorithm on 10th September 2026. Multiple pot purchases and successful friend referrals generate separate ticket IDs, proportionally increasing winner probability.
+              Grand prize winners are selected via an automated cryptographically verifiable pseudorandom algorithm on 10th September 2026. Multiple pots cracked and successful friend referrals generate separate ticket IDs, proportionally increasing winner probability.
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ export const TermsModal: React.FC<TermsModalProps> = ({ isOpen, onClose }) => {
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl bg-[#E8B923] text-[#0B1230] font-bold text-sm hover:brightness-105 transition-all cursor-pointer shadow"
           >
-            I Understand & Agree
+            I Understand &amp; Agree
           </button>
         </div>
       </div>
